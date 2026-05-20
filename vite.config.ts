@@ -10,7 +10,6 @@ import path from "path";
 const __dirname = import.meta.dirname;
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-import { inspectAttr } from "kimi-plugin-inspect-react";
 import { realtimeDevPlugin } from "./api/realtime/vite-plugin";
 
 export default defineConfig({
@@ -19,7 +18,6 @@ export default defineConfig({
     realtimeDevPlugin(),
     // ② Hono handles /api/* routes.
     devServer({ entry: "api/boot.ts", exclude: [/^\/(?!api\/).*$/] }),
-    inspectAttr(),
     react(),
   ],
   server: {
