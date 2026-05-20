@@ -1,0 +1,13 @@
+{
+  "_comment": "Run: npm install socket.io socket.io-client nanoid",
+  "dependencies": {
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "nanoid": "^5.1.5"
+  },
+  "_optionalScalingDeps": {
+    "@socket.io/redis-adapter": "^8.3.0",
+    "redis": "^4.7.0"
+  },
+  "_note": "The redis adapter enables horizontal scaling across multiple Node.js processes. Install when you need >1 server instance."
+}

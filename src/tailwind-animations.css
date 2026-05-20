@@ -1,0 +1,98 @@
+/*
+ * tailwind-animations.css
+ *
+ * Add these @keyframes and utilities to your src/index.css (or import them).
+ * They power the price flash, slide-in, and market pulse animations.
+ *
+ * All timings use CSS custom properties so they can be overridden per-theme.
+ */
+
+/* ── Price flash keyframes ────────────────────────────────────────────────── */
+
+@keyframes priceFlashUp {
+  0%   { background-color: transparent; }
+  15%  { background-color: rgba(16, 185, 129, 0.35); }  /* emerald-500/35 */
+  100% { background-color: transparent; }
+}
+
+@keyframes priceFlashDown {
+  0%   { background-color: transparent; }
+  15%  { background-color: rgba(239, 68, 68, 0.35); }   /* red-500/35 */
+  100% { background-color: transparent; }
+}
+
+/* ── Slide-in animations ──────────────────────────────────────────────────── */
+
+@keyframes slideInTop {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Market pulse ─────────────────────────────────────────────────────────── */
+
+@keyframes marketPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+/* ── Ticker scroll ────────────────────────────────────────────────────────── */
+
+@keyframes tickerScroll {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* ── Utility classes (add to your Tailwind config or use @layer utilities) ── */
+
+.animate-price-flash-up {
+  animation: priceFlashUp 2s ease-out forwards;
+  border-radius: 0.25rem;
+  padding: 0 0.25rem;
+}
+
+.animate-price-flash-down {
+  animation: priceFlashDown 2s ease-out forwards;
+  border-radius: 0.25rem;
+  padding: 0 0.25rem;
+}
+
+.animate-slide-in-top {
+  animation: slideInTop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-market-pulse {
+  animation: marketPulse 2s ease-in-out infinite;
+}
+
+.animate-ticker {
+  animation: tickerScroll 30s linear infinite;
+  white-space: nowrap;
+}
+
+@keyframes cartPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-cart-pop {
+  animation: cartPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
+}

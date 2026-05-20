@@ -1,0 +1,218 @@
+/* Cyberpunk trading terminal theme */
+:root {
+  --cyber-bg: #030712;
+  --cyber-panel: #0a0f1e;
+  --cyber-border: rgba(0, 255, 136, 0.15);
+  --cyber-glow: #00ff88;
+  --cyber-accent: #22d3ee;
+  --cyber-magenta: #e879f9;
+  --cyber-danger: #f43f5e;
+}
+
+.cyber-grid-bg {
+  background-color: var(--cyber-bg);
+  background-image:
+    linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.cyber-panel {
+  background: linear-gradient(145deg, rgba(10, 15, 30, 0.95), rgba(3, 7, 18, 0.98));
+  border: 1px solid var(--cyber-border);
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 136, 0.05),
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.cyber-glow-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid var(--cyber-border);
+  background: linear-gradient(160deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.95));
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+}
+
+.cyber-glow-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 255, 136, 0.4),
+    transparent 40%,
+    transparent 60%,
+    rgba(34, 211, 238, 0.35)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.cyber-glow-card:hover::before,
+.cyber-glow-card.cyber-glow-active::before {
+  opacity: 1;
+}
+
+.cyber-glow-card:hover {
+  box-shadow:
+    0 0 24px rgba(0, 255, 136, 0.12),
+    0 0 48px rgba(34, 211, 238, 0.08);
+  transform: translateY(-2px);
+}
+
+.cyber-text-glow {
+  text-shadow: 0 0 20px rgba(0, 255, 136, 0.45);
+}
+
+.cyber-scanline::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+@keyframes cyberFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-cyber-float {
+  animation: cyberFloat 4s ease-in-out infinite;
+}
+
+@keyframes neonPulse {
+  0%,
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.85;
+    filter: brightness(1.15);
+  }
+}
+
+.animate-neon-pulse {
+  animation: neonPulse 2.5s ease-in-out infinite;
+}
+
+.heat-cell-low {
+  background: rgba(34, 211, 238, 0.12);
+  border-color: rgba(34, 211, 238, 0.25);
+}
+.heat-cell-mid {
+  background: rgba(234, 179, 8, 0.12);
+  border-color: rgba(234, 179, 8, 0.3);
+}
+.heat-cell-high {
+  background: rgba(244, 63, 94, 0.15);
+  border-color: rgba(244, 63, 94, 0.35);
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.2);
+}
+
+html.tv-fullscreen {
+  overflow: hidden;
+}
+
+/* Large-format displays (TV / 4K signage) */
+.display-4k {
+  font-size: clamp(14px, 0.9vw, 18px);
+}
+
+@media (min-width: 1920px) {
+  .display-4k {
+    font-size: clamp(16px, 0.75vw, 22px);
+  }
+}
+
+@media (min-width: 2560px) {
+  .display-4k .cyber-text-glow {
+    text-shadow: 0 0 32px rgba(0, 255, 136, 0.55);
+  }
+}
+
+.chart-trading-glow {
+  position: relative;
+  border-radius: 0.75rem;
+}
+
+.chart-trading-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 255, 136, 0.08),
+    rgba(34, 211, 238, 0.06),
+    rgba(232, 121, 249, 0.08)
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.chart-trading-glow .recharts-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+.market-shell {
+  box-sizing: border-box;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.market-shell * {
+  box-sizing: border-box;
+}
+
+.market-product-grid {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr));
+  gap: clamp(0.5rem, 1.2vw, 0.875rem);
+}
+
+@media (min-width: 640px) {
+  .market-product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .market-product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr));
+  }
+}
+
+.market-scroll {
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
