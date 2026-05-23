@@ -83,6 +83,32 @@ app.post("/api/auth/register", async (c) => {
   }
 });
 
+app.post("/api/auth/login", async (c) => {
+  try {
+    logApi("login", "REST request received");
+    const body = await c.req.json();
+    const email = String(body.email ?? "").trim();
+    const password = String(body.password ?? "");
+
+    if (!email || !password) {
+      return c.json({ error: "Email and password are required" }, 400);
+    }
+
+    const result = await loginUser({ email, password });
+    return c.json(result);
+  } catch (err) {
+    logApiError("login", "REST failed", err);
+    if (err instanceof TRPCError) {
+      const status = err.code === "UNAUTHORIZED" ? 401 : 500;
+      return c.json({ error: err.message }, status);
+    }
+    return c.json(
+      { error: err instanceof Error ? err.message : "Login failed" },
+      500,
+    );
+  }
+});
+
 app.post("/api/uploads/product", async (c) => {
   try {
     const user = await verifyAuthHeader(c.req.header("authorization"));
@@ -111,32 +137,6 @@ app.post("/api/uploads/product", async (c) => {
         error: err instanceof Error ? err.message : "Upload failed",
       },
       400,
-    );
-  }
-});
-
-app.post("/api/auth/login", async (c) => {
-  try {
-    logApi("login", "REST request received");
-    const body = await c.req.json();
-    const email = String(body.email ?? "").trim();
-    const password = String(body.password ?? "");
-
-    if (!email || !password) {
-      return c.json({ error: "Email and password are required" }, 400);
-    }
-
-    const result = await loginUser({ email, password });
-    return c.json(result);
-  } catch (err) {
-    logApiError("login", "REST failed", err);
-    if (err instanceof TRPCError) {
-      const status = err.code === "UNAUTHORIZED" ? 401 : 500;
-      return c.json({ error: err.message }, status);
-    }
-    return c.json(
-      { error: err instanceof Error ? err.message : "Login failed" },
-      500,
     );
   }
 });
