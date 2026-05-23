@@ -19,10 +19,17 @@ export async function uploadProductImage(
     body: form,
   });
 
-  const data = (await res.json().catch(() => ({}))) as {
-    url?: string;
-    error?: string;
-  };
+  const text = await res.text();
+  console.log("Raw upload response:", text, { status: res.status, statusText: res.statusText });
+
+  let data: { url?: string; error?: string } = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+    console.log("Parsed upload response:", data);
+  } catch (err) {
+    console.error("Upload JSON parse failed:", err, text);
+    throw new Error("Invalid JSON response from server");
+  }
 
   if (!res.ok) {
     throw new Error(data.error ?? `Upload failed (${res.status})`);

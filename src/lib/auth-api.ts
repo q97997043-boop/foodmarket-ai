@@ -7,14 +7,20 @@ export type AuthResponse = {
 };
 
 async function readJsonError(res: Response): Promise<string> {
+  const text = await res.text();
+  console.log("Raw error response:", text, { status: res.status, statusText: res.statusText });
+
+  let data: { error?: string; message?: string } = {};
   try {
-    const data = await res.json();
-    if (typeof data?.error === "string") return data.error;
-    if (typeof data?.error?.message === "string") return data.error.message;
-    if (typeof data?.message === "string") return data.message;
-  } catch {
-    // ignore
+    data = text ? JSON.parse(text) : {};
+    console.log("Parsed error response:", data);
+  } catch (err) {
+    console.error("JSON parse failed in readJsonError:", err, text);
+    return `Request failed (${res.status})`;
   }
+
+  if (typeof data?.error === "string") return data.error;
+  if (typeof data?.message === "string") return data.message;
   return `Request failed (${res.status})`;
 }
 
@@ -24,31 +30,32 @@ export async function registerViaRest(input: {
   password: string;
   restaurantName?: string;
 }): Promise<AuthResponse> {
-  logInit("register", "REST fallback request", { email: input.email });
+  const url = "/api/auth/register";
+  logInit("register", "REST fallback request", { email: input.email, url, method: "POST" });
 
-  const res = await fetch("/api/auth/register", {
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
 
-  const text = await res.text();
-  if (!text) {
-    console.error("Empty API response for registerViaRest", { status: res.status, statusText: res.statusText });
-    throw new Error("Empty API response");
-  }
+  console.log("Register request URL:", url, "status:", res.status, "statusText:", res.statusText);
 
-  let data: AuthResponse | { error?: string };
+  const text = await res.text();
+  console.log("Raw response:", text);
+
+  let data: AuthResponse | { error?: string; message?: string } = {};
   try {
-    data = JSON.parse(text);
+    data = text ? JSON.parse(text) : {};
+    console.log("Parsed JSON:", data);
   } catch (err) {
-    console.error("Invalid JSON response for registerViaRest:", text, err);
-    throw new Error("Invalid JSON from API");
+    console.error("JSON parse failed:", err, text);
+    throw new Error("Invalid JSON response from server");
   }
 
   if (!res.ok) {
-    console.error("Register REST request failed:", { status: res.status, statusText: res.statusText, body: data });
-    throw new Error((data as any)?.error || "Request failed");
+    console.error("Register REST request failed:", { url, status: res.status, statusText: res.statusText, body: data });
+    throw new Error((data as any)?.error || (data as any)?.message || "Request failed");
   }
 
   logInit("register", "REST fallback success", { email: (data as AuthResponse).user?.email });
@@ -59,29 +66,32 @@ export async function loginViaRest(input: {
   email: string;
   password: string;
 }): Promise<AuthResponse> {
-  const res = await fetch("/api/auth/login", {
+  const url = "/api/auth/login";
+  logInit("login", "REST fallback request", { email: input.email, url, method: "POST" });
+
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
 
-  const text = await res.text();
-  if (!text) {
-    console.error("Empty API response for loginViaRest", { status: res.status, statusText: res.statusText });
-    throw new Error("Empty API response");
-  }
+  console.log("Login request URL:", url, "status:", res.status, "statusText:", res.statusText);
 
-  let data: AuthResponse | { error?: string };
+  const text = await res.text();
+  console.log("Raw response:", text);
+
+  let data: AuthResponse | { error?: string; message?: string } = {};
   try {
-    data = JSON.parse(text);
+    data = text ? JSON.parse(text) : {};
+    console.log("Parsed JSON:", data);
   } catch (err) {
-    console.error("Invalid JSON response for loginViaRest:", text, err);
-    throw new Error("Invalid JSON from API");
+    console.error("JSON parse failed:", err, text);
+    throw new Error("Invalid JSON response from server");
   }
 
   if (!res.ok) {
-    console.error("Login REST request failed:", { status: res.status, statusText: res.statusText, body: data });
-    throw new Error((data as any)?.error || "Request failed");
+    console.error("Login REST request failed:", { url, status: res.status, statusText: res.statusText, body: data });
+    throw new Error((data as any)?.error || (data as any)?.message || "Request failed");
   }
 
   return data as AuthResponse;
