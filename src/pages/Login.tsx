@@ -1,10 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { TRPCClientError } from "@trpc/client";
-import { trpc } from "../lib/trpc";
 import { useAuth } from "../providers/AuthProvider";
 import { useI18n } from "../providers/I18nProvider";
-import { parseFetchError } from "../providers/TRPCProvider";
 import { loginViaRest } from "../lib/auth-api";
 import { logInit } from "../lib/init-log";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
@@ -16,43 +13,32 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
   const { t, translateError } = useI18n();
-  const loginMutation = trpc.auth.login.useMutation();
-
-  const getErrorMessage = (err: unknown): string => {
-    if (err instanceof TRPCClientError) return translateError(err.message);
-    return translateError(parseFetchError(err));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
     const payload = { email: email.trim(), password };
 
     try {
-      let result: { token: string; user: Parameters<typeof login>[1] };
-
-      try {
-        result = await loginMutation.mutateAsync(payload);
-      } catch (trpcErr) {
-        const msg = getErrorMessage(trpcErr);
-        const isNetwork =
-          trpcErr instanceof TypeError ||
-          (trpcErr instanceof TRPCClientError &&
-            (msg.includes("fetch") || msg.includes("network") || msg.includes("server")));
-
-        if (!isNetwork) throw trpcErr;
-        logInit("login", "REST fallback", msg);
-        result = await loginViaRest(payload);
-      }
-
+      logInit("login", "REST API request", { email: payload.email });
+      const result = await loginViaRest(payload);
+      
       login(result.token, result.user);
+      logInit("login", "success, redirecting to dashboard");
       navigate("/", { replace: true });
     } catch (err: unknown) {
-      setError(getErrorMessage(err));
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      const message = translateError(errorMsg);
+      logInit("login", "failed", message);
+      setError(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -119,10 +105,10 @@ export default function Login() {
 
           <button
             type="submit"
-            disabled={loginMutation.isLoading}
+            disabled={isLoading}
             className="flex w-full items-center justify-center rounded-lg bg-emerald-500 px-4 py-3 font-semibold text-white transition-colors hover:bg-emerald-600 disabled:opacity-50"
           >
-            {loginMutation.isLoading ? (
+            {isLoading ? (
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
               t("auth.login.submit")

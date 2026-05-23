@@ -1,10 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { TRPCClientError } from "@trpc/client";
-import { trpc } from "../lib/trpc";
 import { useAuth } from "../providers/AuthProvider";
 import { useI18n } from "../providers/I18nProvider";
-import { parseFetchError } from "../providers/TRPCProvider";
 import { registerViaRest } from "../lib/auth-api";
 import { logInit } from "../lib/init-log";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
@@ -15,19 +12,15 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [restaurantName, setRestaurantName] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
   const { t, translateError } = useI18n();
-  const registerMutation = trpc.auth.register.useMutation();
-
-  const getErrorMessage = (err: unknown): string => {
-    if (err instanceof TRPCClientError) return translateError(err.message);
-    return translateError(parseFetchError(err));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
     const payload = {
       email: email.trim(),
@@ -38,30 +31,19 @@ export default function Register() {
     logInit("register", "submit", { email: payload.email });
 
     try {
-      let result: { token: string; user: Parameters<typeof login>[1] };
-
-      try {
-        result = await registerMutation.mutateAsync(payload);
-        logInit("register", "tRPC success");
-      } catch (trpcErr) {
-        const msg = getErrorMessage(trpcErr);
-        const isNetwork =
-          trpcErr instanceof TypeError ||
-          (trpcErr instanceof TRPCClientError &&
-            (msg.includes("fetch") || msg.includes("network") || msg.includes("server")));
-
-        if (!isNetwork) throw trpcErr;
-        logInit("register", "tRPC failed, trying REST fallback", msg);
-        result = await registerViaRest(payload);
-      }
+      logInit("register", "REST API request", { email: payload.email });
+      const result = await registerViaRest(payload);
 
       login(result.token, result.user);
       logInit("register", "auto-login, redirecting to dashboard");
       navigate("/", { replace: true });
     } catch (err: unknown) {
-      const message = getErrorMessage(err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      const message = translateError(errorMsg);
       logInit("register", "failed", message);
       setError(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -135,10 +117,10 @@ export default function Register() {
 
           <button
             type="submit"
-            disabled={registerMutation.isLoading}
+            disabled={isLoading}
             className="flex w-full items-center justify-center rounded-lg bg-cyan-500 px-4 py-3 font-semibold text-white transition-colors hover:bg-cyan-600 disabled:opacity-50"
           >
-            {registerMutation.isLoading ? (
+            {isLoading ? (
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
               t("auth.register.submit")
