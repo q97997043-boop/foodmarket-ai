@@ -32,13 +32,27 @@ export async function registerViaRest(input: {
     body: JSON.stringify(input),
   });
 
-  if (!res.ok) {
-    throw new Error(await readJsonError(res));
+  const text = await res.text();
+  if (!text) {
+    console.error("Empty API response for registerViaRest", { status: res.status, statusText: res.statusText });
+    throw new Error("Empty API response");
   }
 
-  const data = (await res.json()) as AuthResponse;
-  logInit("register", "REST fallback success", { email: data.user.email });
-  return data;
+  let data: AuthResponse | { error?: string };
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    console.error("Invalid JSON response for registerViaRest:", text, err);
+    throw new Error("Invalid JSON from API");
+  }
+
+  if (!res.ok) {
+    console.error("Register REST request failed:", { status: res.status, statusText: res.statusText, body: data });
+    throw new Error((data as any)?.error || "Request failed");
+  }
+
+  logInit("register", "REST fallback success", { email: (data as AuthResponse).user?.email });
+  return data as AuthResponse;
 }
 
 export async function loginViaRest(input: {
@@ -51,9 +65,24 @@ export async function loginViaRest(input: {
     body: JSON.stringify(input),
   });
 
-  if (!res.ok) {
-    throw new Error(await readJsonError(res));
+  const text = await res.text();
+  if (!text) {
+    console.error("Empty API response for loginViaRest", { status: res.status, statusText: res.statusText });
+    throw new Error("Empty API response");
   }
 
-  return res.json() as Promise<AuthResponse>;
+  let data: AuthResponse | { error?: string };
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    console.error("Invalid JSON response for loginViaRest:", text, err);
+    throw new Error("Invalid JSON from API");
+  }
+
+  if (!res.ok) {
+    console.error("Login REST request failed:", { status: res.status, statusText: res.statusText, body: data });
+    throw new Error((data as any)?.error || "Request failed");
+  }
+
+  return data as AuthResponse;
 }
