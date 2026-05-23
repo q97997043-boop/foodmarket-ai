@@ -1,43 +1,61 @@
 import { registerUser } from "../lib/auth-service";
 import { logApi } from "../lib/log";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler(req, res) {
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+): Promise<VercelResponse | void> {
   res.setHeader("Content-Type", "application/json");
 
+  // Only allow POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const { email, password, restaurantName } = req.body;
+    // Parse body - handle both parsed and raw body
+    let body: Record<string, unknown>;
+    
+    if (typeof req.body === "string") {
+      body = JSON.parse(req.body);
+    } else if (req.body) {
+      body = req.body as Record<string, unknown>;
+    } else {
+      return res.status(400).json({ error: "Missing request body" });
+    }
+
+    const { email, password, restaurantName } = body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res.status(400).json({ error: "Missing required fields: email and password" });
+    }
+
+    if (typeof email !== "string" || typeof password !== "string") {
+      return res.status(400).json({ error: "Invalid field types" });
     }
 
     const result = await registerUser({
-      email,
+      email: email.trim(),
       password,
-      restaurantName,
+      restaurantName: restaurantName && typeof restaurantName === "string" ? restaurantName.trim() : undefined,
     });
 
     logApi("register-endpoint", "registration successful", { email });
     return res.status(200).json(result);
   } catch (err) {
-    logApi("register-endpoint", "error", {
-      message: err instanceof Error ? err.message : String(err),
-    });
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    logApi("register-endpoint", "error", { message: errorMsg });
 
     if (err instanceof Error) {
-      const msg = err.message;
-      if (msg.includes("already exists") || msg.includes("CONFLICT")) {
+      if (errorMsg.includes("already exists") || errorMsg.includes("CONFLICT")) {
         return res.status(409).json({ error: "User already exists" });
       }
-      if (msg.includes("minimum length") || msg.includes("validation")) {
-        return res.status(400).json({ error: msg });
+      if (errorMsg.includes("minimum length") || errorMsg.includes("validation")) {
+        return res.status(400).json({ error: errorMsg });
       }
     }
 
-    return res.status(500).json({ error: "Registration failed" });
+    return res.status(500).json({ error: "Registration failed", details: errorMsg });
   }
 }
