@@ -17,14 +17,11 @@ export default async function handler(
     const body =
       typeof req.body === "string" ? JSON.parse(req.body) : req.body;
 
+    // Temporary debug response to verify routing returns JSON (not HTML)
     return res.status(200).json({
       success: true,
-      token: "demo-token",
-      user: {
-        id: "1",
-        email: body?.email || "demo@example.com",
-        role: "OWNER",
-      },
+      route: "register api works",
+      received: { email: body?.email ?? null },
     });
   } catch (err) {
     return res.status(500).json({
