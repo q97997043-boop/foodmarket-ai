@@ -129,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log("AuthProvider: auth state updated", { token: !!newToken, userEmail: newUser.email });
   }, []);
 
-  const currentUser = userData ?? user;
+  const currentUser = user;
   const isLoading = authPending && !authTimedOut;
   const isAuthReady = !token || !isLoading;
 
