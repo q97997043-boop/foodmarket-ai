@@ -33,11 +33,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logInit("auth", stored ? "token found in storage" : "no token in storage");
     return stored;
   });
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const raw = localStorage.getItem("auth-user");
+      return raw ? (JSON.parse(raw) as User) : null;
+    } catch (err) {
+      return null;
+    }
+  });
 
   const logout = useCallback(() => {
     logInit("auth", "logout — clearing session");
     localStorage.removeItem("auth-token");
+    localStorage.removeItem("auth-user");
     setToken(null);
     setUser(null);
   }, []);
@@ -84,6 +92,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback((newToken: string, newUser: User) => {
     logInit("auth", "login success", { email: newUser.email });
     localStorage.setItem("auth-token", newToken);
+    try {
+      localStorage.setItem("auth-user", JSON.stringify(newUser));
+    } catch (err) {
+      logInit("auth", "warning: failed to persist user to localStorage", String(err));
+    }
     setToken(newToken);
     setUser(newUser);
   }, []);

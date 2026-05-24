@@ -68,6 +68,7 @@ export async function loginViaRest(input: {
 }): Promise<AuthResponse> {
   const url = "/api/auth/login";
   logInit("login", "REST fallback request", { email: input.email, url, method: "POST" });
+  console.log("loginViaRest: request started", { url, body: input });
 
   const res = await fetch(url, {
     method: "POST",
@@ -75,15 +76,15 @@ export async function loginViaRest(input: {
     body: JSON.stringify(input),
   });
 
-  console.log("Login request URL:", url, "status:", res.status, "statusText:", res.statusText);
+  console.log("loginViaRest: response status", { status: res.status, statusText: res.statusText });
 
   const text = await res.text();
-  console.log("Raw response:", text);
+  console.log("loginViaRest: raw response text:", text);
 
   let data: AuthResponse | { error?: string; message?: string } = {};
   try {
     data = text ? JSON.parse(text) : {};
-    console.log("Parsed JSON:", data);
+    console.log("loginViaRest: parsed JSON:", data);
   } catch (err) {
     console.error("JSON parse failed:", err, text);
     throw new Error("Invalid JSON response from server");
@@ -94,5 +95,6 @@ export async function loginViaRest(input: {
     throw new Error((data as any)?.error || (data as any)?.message || "Request failed");
   }
 
+  console.log("loginViaRest: success - returning data", data);
   return data as AuthResponse;
 }

@@ -27,11 +27,14 @@ export default function Login() {
 
     try {
       logInit("login", "REST API request", { email: payload.email });
+      console.log("Login: request started", payload);
       const result = await loginViaRest(payload);
-      
+      console.log("Login: request finished, result:", result);
+
       login(result.token, result.user);
+      console.log("Login: stored token and user, navigating to /dashboard");
       logInit("login", "success, redirecting to dashboard");
-      navigate("/", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       const message = translateError(errorMsg);
