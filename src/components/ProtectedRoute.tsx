@@ -5,8 +5,10 @@ import { useLoadingTimeout } from "../hooks/useLoadingTimeout";
 import { logInit } from "../lib/init-log";
 
 export function ProtectedRoute() {
-  const { user, isLoading, isAuthReady, token } = useAuth();
+  const { user, isLoading, isAuthReady, token, isAuthenticated } = useAuth();
   const authTimedOut = useLoadingTimeout(isLoading, 3000);
+
+  console.log("ProtectedRoute: auth check", { tokenPresent: !!token, userPresent: !!user, isAuthenticated, isLoading, isAuthReady, authTimedOut });
 
   if (token && isLoading && !authTimedOut) {
     return (
@@ -21,13 +23,17 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
+  // If not authenticated, redirect to login
+  if (!isAuthenticated) {
+    console.log("ProtectedRoute: not authenticated — redirecting to /login");
+    return <Navigate to="/login" replace />;
+  }
+
   if (isAuthReady && !user) {
+    console.log("ProtectedRoute: auth ready but no user — redirecting to /login");
     return <Navigate to="/login" replace />;
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
+  console.log("ProtectedRoute: passed — rendering outlet");
   return <Outlet />;
 }

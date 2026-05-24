@@ -40,6 +40,7 @@ export function Dashboard() {
 
   useEffect(() => {
     logInit("dashboard", "mount", { restaurantId });
+    console.log("Dashboard: mounted", { restaurantId });
   }, [restaurantId]);
 
   useEffect(() => {

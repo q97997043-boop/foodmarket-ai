@@ -75,8 +75,10 @@ function AppRoutes() {
           <Route path="/register" element={<Register />} errorElement={<RouteErrorBoundary />} />
           <Route path="/m" element={<Navigate to="/" replace />} />
           <Route path="/m/:slug" element={<QrMenu />} errorElement={<RouteErrorBoundary />} />
-          <Route path="/dashboard" element={<Navigate to="/" replace />} />
           <Route element={<ProtectedRoute />} errorElement={<RouteErrorBoundary />}>
+            <Route path="/dashboard" element={<MainLayout />}>
+              <Route index element={<Dashboard />} />
+            </Route>
             <Route path="/tv" element={<TvMode />} />
             <Route path="/display" element={<CustomerDisplay />} />
             <Route path="/" element={<MainLayout />}>

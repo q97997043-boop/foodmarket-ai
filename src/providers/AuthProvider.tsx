@@ -21,6 +21,7 @@ type AuthContextType = {
   token: string | null;
   isLoading: boolean;
   isAuthReady: boolean;
+  isAuthenticated: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
 };
@@ -42,12 +43,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   });
 
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem("auth-token");
+      return !!raw;
+    } catch (err) {
+      return false;
+    }
+  });
+
   const logout = useCallback(() => {
     logInit("auth", "logout — clearing session");
     localStorage.removeItem("auth-token");
     localStorage.removeItem("auth-user");
     setToken(null);
     setUser(null);
+    setIsAuthenticated(false);
   }, []);
 
   const {
@@ -72,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         restaurantId: userData.restaurantId,
       });
       setUser(userData as User);
+      setIsAuthenticated(true);
     }
   }, [userData]);
 
@@ -101,15 +113,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setToken(newToken);
     setUser(newUser);
+    setIsAuthenticated(true);
+    console.log("AuthProvider: auth state updated", { token: !!newToken, userEmail: newUser.email });
   }, []);
 
   const currentUser = userData ?? user;
   const isLoading = authPending && !authTimedOut;
   const isAuthReady = !token || !isLoading;
 
+  useEffect(() => {
+    console.log("AuthProvider: state", { tokenPresent: !!token, userPresent: !!currentUser, isAuthenticated });
+  }, [token, currentUser, isAuthenticated]);
+
   return (
     <AuthContext.Provider
-      value={{ user: currentUser, token, isLoading, isAuthReady, login, logout }}
+      value={{ user: currentUser, token, isLoading, isAuthReady, isAuthenticated, login, logout }}
     >
       {children}
     </AuthContext.Provider>

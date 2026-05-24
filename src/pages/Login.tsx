@@ -39,6 +39,13 @@ export default function Login() {
       console.log("Login: navigating to /dashboard");
       logInit("login", "success, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
+      // Fallback: if React Router navigation doesn't change location, force it after short delay
+      setTimeout(() => {
+        if (window.location.pathname !== "/dashboard" && window.location.pathname !== "/") {
+          console.warn("Login: navigate failed, forcing full-page navigation to /dashboard");
+          window.location.href = "/dashboard";
+        }
+      }, 600);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       const message = translateError(errorMsg);
