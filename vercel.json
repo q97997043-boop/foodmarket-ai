@@ -9,6 +9,10 @@
       "dest": "/api/boot.ts"
     },
     {
+      "src": "/api/trpc",
+      "dest": "/api/boot.ts"
+    },
+    {
       "src": "/api/auth/register",
       "dest": "/api/auth/register.ts"
     }
