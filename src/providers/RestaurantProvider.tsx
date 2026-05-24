@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo } from "react";
-import { trpc } from "../lib/trpc";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "./AuthProvider";
 import { logInit, warnInit } from "../lib/init-log";
 import { useLoadingTimeout } from "../hooks/useLoadingTimeout";
@@ -55,38 +54,50 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
 
   const shouldFetchSettings = Boolean(token && user && isAuthReady);
 
-  const {
-    data,
-    isLoading,
-    isFetching,
-    isError,
-    error,
-    refetch,
-  } = trpc.settings.get.useQuery(undefined, {
-    enabled: shouldFetchSettings,
-    retry: 1,
-    retryDelay: 500,
-    staleTime: 30_000,
-    refetchOnWindowFocus: false,
-    onSuccess: (workspace) => {
-      logInit("settings", "workspace loaded", {
-        restaurantId: workspace.restaurant.id,
-        name: workspace.restaurant.name,
-      });
-      saveBrandingCache({
-        logoUrl: workspace.restaurant.logoUrl,
-        name: workspace.restaurant.name,
-        themeColor: workspace.restaurant.themeColor,
-      });
-    },
-    onError: (err) => {
-      warnInit("settings", "fetch failed — app will continue", err.message);
-    },
-  });
+  const [data, setData] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [error, setError] = useState<any | null>(null);
 
-  const settingsPending =
-    shouldFetchSettings && !data && !isError && (isLoading || isFetching);
-  const settingsTimedOut = useLoadingTimeout(settingsPending, 3000);
+  const refetch = async () => {
+    if (!shouldFetchSettings) return;
+    setIsLoading(true);
+    setIsError(false);
+    setError(null);
+    try {
+      const res = await fetch(`${window.location.origin}/api/settings/get`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`Settings fetch failed: ${res.status} ${txt}`);
+      }
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        const txt = await res.text();
+        throw new Error(`Invalid JSON response: ${txt}`);
+      }
+      const payload = await res.json();
+      setData(payload);
+      saveBrandingCache({
+        logoUrl: payload?.restaurant?.logoUrl,
+        name: payload?.restaurant?.name,
+        themeColor: payload?.restaurant?.themeColor,
+      });
+      logInit("settings", "workspace loaded", {
+        restaurantId: payload?.restaurant?.id,
+        name: payload?.restaurant?.name,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setIsError(true);
+      setError(message);
+      warnInit("settings", "fetch failed — app will continue", message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (shouldFetchSettings) {
@@ -94,8 +105,13 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
         userId: user?.id,
         restaurantId: user?.restaurantId,
       });
+      void refetch();
     }
-  }, [shouldFetchSettings, user?.id, user?.restaurantId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldFetchSettings]);
+
+  const settingsPending = shouldFetchSettings && !data && !isError && isLoading;
+  const settingsTimedOut = useLoadingTimeout(settingsPending, 3000);
 
   useEffect(() => {
     if (settingsTimedOut) {
@@ -106,7 +122,7 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
   const isWorkspaceLoading = settingsPending && !settingsTimedOut;
 
   const settingsError = isError
-    ? error?.message ?? "Failed to load restaurant settings"
+    ? error?.message ?? String(error) ?? "Failed to load restaurant settings"
     : settingsTimedOut
       ? "Settings load timed out"
       : null;

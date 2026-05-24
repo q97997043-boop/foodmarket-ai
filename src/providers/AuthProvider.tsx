@@ -5,7 +5,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { trpc } from "../lib/trpc";
 import { logInit, warnInit } from "../lib/init-log";
 import { useLoadingTimeout } from "../hooks/useLoadingTimeout";
 
@@ -61,45 +60,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(false);
   }, []);
 
-  const {
-    data: userData,
-    isLoading: isQueryLoading,
-    isFetching,
-    isError,
-    error,
-  } = trpc.auth.me.useQuery(undefined, {
-    enabled: !!token,
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const authPending = !!token && (isQueryLoading || isFetching) && !isError;
+  const [isQueryLoading, setIsQueryLoading] = useState(false);
+  const [isErrorState, setIsErrorState] = useState<string | null>(null);
+  const authPending = !!token && isQueryLoading && !isErrorState;
   const authTimedOut = useLoadingTimeout(authPending, 3000);
 
   useEffect(() => {
-    if (userData) {
-      logInit("auth", "session validated", {
-        email: userData.email,
-        restaurantId: userData.restaurantId,
-      });
-      setUser(userData as User);
-      setIsAuthenticated(true);
+    let mounted = true;
+    async function fetchMe() {
+      if (!token) return;
+      setIsQueryLoading(true);
+      setIsErrorState(null);
+      try {
+        const res = await fetch(`${window.location.origin}/api/auth/me`, {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`Auth fetch failed: ${res.status} ${txt}`);
+        }
+        const contentType = res.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          const txt = await res.text();
+          throw new Error(`Invalid JSON response: ${txt}`);
+        }
+        const payload = await res.json();
+        if (mounted && payload?.user) {
+          logInit("auth", "session validated", {
+            email: payload.user.email,
+            restaurantId: payload.user.restaurantId,
+          });
+          setUser(payload.user as User);
+          setIsAuthenticated(true);
+        } else if (mounted) {
+          setIsErrorState("Invalid auth response");
+          logout();
+        }
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        setIsErrorState(message);
+        warnInit("auth", "session invalid — redirecting to login", message);
+        logout();
+      } finally {
+        if (mounted) setIsQueryLoading(false);
+      }
     }
-  }, [userData]);
 
-  useEffect(() => {
-    if (isError) {
-      warnInit("auth", "session invalid — redirecting to login", error);
-      logout();
-    }
-  }, [isError, error, logout]);
-
-  useEffect(() => {
-    if (authTimedOut && token) {
-      warnInit("auth", "init timeout (3s) — clearing stale token");
-      logout();
-    }
-  }, [authTimedOut, token, logout]);
+    if (token) fetchMe();
+    return () => {
+      mounted = false;
+    };
+  }, [token, logout]);
 
   const login = useCallback((newToken: string, newUser: User) => {
     logInit("auth", "login success", { email: newUser.email });
