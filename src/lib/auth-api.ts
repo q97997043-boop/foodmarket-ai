@@ -6,6 +6,13 @@ export type AuthResponse = {
   user: User;
 };
 
+function getApiBase() {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  return "";
+}
+
 async function readJsonError(res: Response): Promise<string> {
   const text = await res.text();
   console.log("Raw error response:", text, { status: res.status, statusText: res.statusText });
@@ -30,8 +37,10 @@ export async function registerViaRest(input: {
   password: string;
   restaurantName?: string;
 }): Promise<AuthResponse> {
-  const url = "/api/auth/register";
+  const url = `${getApiBase()}/api/auth/register`;
   logInit("register", "REST fallback request", { email: input.email, url, method: "POST" });
+  console.log("registerViaRest: request url", url);
+  console.log("registerViaRest: request body", input);
 
   const res = await fetch(url, {
     method: "POST",
@@ -39,17 +48,17 @@ export async function registerViaRest(input: {
     body: JSON.stringify(input),
   });
 
-  console.log("Register request URL:", url, "status:", res.status, "statusText:", res.statusText);
+  console.log("registerViaRest: response status", { status: res.status, statusText: res.statusText });
 
   const text = await res.text();
-  console.log("Raw response:", text);
+  console.log("registerViaRest: raw response text:", text);
 
   let data: AuthResponse | { error?: string; message?: string } = {};
   try {
     data = text ? JSON.parse(text) : {};
-    console.log("Parsed JSON:", data);
+    console.log("registerViaRest: parsed JSON:", data);
   } catch (err) {
-    console.error("JSON parse failed:", err, text);
+    console.error("registerViaRest: JSON parse failed:", err, text);
     throw new Error("Invalid JSON response from server");
   }
 
@@ -66,9 +75,10 @@ export async function loginViaRest(input: {
   email: string;
   password: string;
 }): Promise<AuthResponse> {
-  const url = "/api/auth/login";
+  const url = `${getApiBase()}/api/auth/login`;
   logInit("login", "REST fallback request", { email: input.email, url, method: "POST" });
-  console.log("loginViaRest: request started", { url, body: input });
+  console.log("loginViaRest: request url", url);
+  console.log("loginViaRest: request body", input);
 
   const res = await fetch(url, {
     method: "POST",
@@ -86,7 +96,7 @@ export async function loginViaRest(input: {
     data = text ? JSON.parse(text) : {};
     console.log("loginViaRest: parsed JSON:", data);
   } catch (err) {
-    console.error("JSON parse failed:", err, text);
+    console.error("loginViaRest: JSON parse failed:", err, text);
     throw new Error("Invalid JSON response from server");
   }
 
@@ -94,7 +104,7 @@ export async function loginViaRest(input: {
     console.error("Login REST request failed:", { url, status: res.status, statusText: res.statusText, body: data });
     throw new Error((data as any)?.error || (data as any)?.message || "Request failed");
   }
-  // Validate expected shape
+
   const asAny = data as any;
   if (!asAny || asAny.success !== true) {
     console.error("loginViaRest: unexpected response shape (missing success=true)", data);

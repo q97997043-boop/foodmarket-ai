@@ -8,6 +8,9 @@ function getApiUrl() {
   if (import.meta.env.VITE_API_URL) {
     return `${import.meta.env.VITE_API_URL.replace(/\/$/, "")}/api/trpc`;
   }
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/api/trpc`;
+  }
   return "/api/trpc";
 }
 
@@ -16,7 +19,7 @@ function parseFetchError(err: unknown): string {
     return err.message;
   }
   if (err instanceof TypeError && err.message === "Failed to fetch") {
-    return "Cannot reach the server. Run npm run dev and open the URL it prints (e.g. http://localhost:3000).";
+    return "Cannot reach the server. Please verify your network and app deployment.";
   }
   if (err instanceof Error) {
     return err.message;

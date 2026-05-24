@@ -9,7 +9,7 @@ const ERROR_MAP: Record<string, string> = {
   "Registration failed": "errors.registrationFailed",
   "Login failed": "errors.loginFailed",
   "Failed to fetch": "errors.network",
-  "Cannot reach the server. Run npm run dev and open the URL it prints (e.g. http://localhost:3000).":
+  "Cannot reach the server. Please verify your network and app deployment.":
     "errors.network",
 };
 

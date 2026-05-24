@@ -290,7 +290,7 @@
     "cancelled": "Bekor qilingan"
   },
   "errors": {
-    "network": "Serverga ulanib bo'lmadi. npm run dev ni ishga tushiring va ko'rsatilgan manzilni oching (masalan http://localhost:3000).",
+    "network": "Serverga ulanib bo'lmadi. Iltimos, tarmoq va ishga tushirishni tekshiring.",
     "requestFailed": "So'rov muvaffaqiyatsiz ({{status}})",
     "invalidCredentials": "Email yoki parol noto'g'ri.",
     "userExists": "Foydalanuvchi allaqachon mavjud",

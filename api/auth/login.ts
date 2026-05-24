@@ -1,5 +1,18 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
+function parseJsonBody(body: unknown) {
+  if (typeof body === "string") {
+    return JSON.parse(body);
+  }
+  if (body instanceof Uint8Array) {
+    return JSON.parse(new TextDecoder().decode(body));
+  }
+  if (body instanceof ArrayBuffer) {
+    return JSON.parse(new TextDecoder().decode(new Uint8Array(body)));
+  }
+  return body;
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
@@ -14,8 +27,8 @@ export default async function handler(
   }
 
   try {
-    const body =
-      typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const rawBody = req.body;
+    const body = parseJsonBody(rawBody ?? {});
 
     // Return expected auth response shape for frontend
     return res.status(200).json({

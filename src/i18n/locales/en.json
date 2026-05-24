@@ -290,7 +290,7 @@
     "cancelled": "Cancelled"
   },
   "errors": {
-    "network": "Cannot reach the server. Run npm run dev and open the URL it prints (e.g. http://localhost:3000).",
+    "network": "Cannot reach the server. Please verify your network and deployment.",
     "requestFailed": "Request failed ({{status}})",
     "invalidCredentials": "Invalid email or password.",
     "userExists": "User already exists",

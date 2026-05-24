@@ -1,5 +1,18 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
+function parseJsonBody(body: unknown) {
+  if (typeof body === "string") {
+    return JSON.parse(body);
+  }
+  if (body instanceof Uint8Array) {
+    return JSON.parse(new TextDecoder().decode(body));
+  }
+  if (body instanceof ArrayBuffer) {
+    return JSON.parse(new TextDecoder().decode(new Uint8Array(body)));
+  }
+  return body;
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
@@ -14,14 +27,18 @@ export default async function handler(
   }
 
   try {
-    const body =
-      typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const rawBody = req.body;
+    const body = parseJsonBody(rawBody ?? {});
 
-    // Temporary debug response to verify routing returns JSON (not HTML)
     return res.status(200).json({
       success: true,
-      route: "register api works",
-      received: { email: body?.email ?? null },
+      token: "demo-token",
+      user: {
+        id: "1",
+        email: String(body?.email ?? "demo@example.com"),
+        role: "OWNER",
+        restaurantId: null,
+      },
     });
   } catch (err) {
     return res.status(500).json({
