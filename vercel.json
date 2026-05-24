@@ -1,4 +1,14 @@
 {
+  "routes": [
+    {
+      "src": "/api/auth/login",
+      "dest": "/api/auth/login.ts"
+    },
+    {
+      "src": "/api/auth/register",
+      "dest": "/api/auth/register.ts"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
