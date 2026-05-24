@@ -27,12 +27,16 @@ export default function Login() {
 
     try {
       logInit("login", "REST API request", { email: payload.email });
-      console.log("Login: request started", payload);
+      console.log("Login: button clicked - starting login flow");
+      console.log("Login: request payload", payload);
       const result = await loginViaRest(payload);
       console.log("Login: request finished, result:", result);
 
+      console.log("Login: token received", result.token);
+      console.log("Login: user received", result.user);
       login(result.token, result.user);
-      console.log("Login: stored token and user, navigating to /dashboard");
+      console.log("Login: localStorage should now contain auth-token and auth-user");
+      console.log("Login: navigating to /dashboard");
       logInit("login", "success, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
     } catch (err: unknown) {

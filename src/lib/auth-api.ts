@@ -94,7 +94,18 @@ export async function loginViaRest(input: {
     console.error("Login REST request failed:", { url, status: res.status, statusText: res.statusText, body: data });
     throw new Error((data as any)?.error || (data as any)?.message || "Request failed");
   }
+  // Validate expected shape
+  const asAny = data as any;
+  if (!asAny || asAny.success !== true) {
+    console.error("loginViaRest: unexpected response shape (missing success=true)", data);
+    throw new Error("Unexpected response from server");
+  }
 
-  console.log("loginViaRest: success - returning data", data);
-  return data as AuthResponse;
+  if (!asAny.token || !asAny.user) {
+    console.error("loginViaRest: missing token or user in response", data);
+    throw new Error("Invalid auth response from server");
+  }
+
+  console.log("loginViaRest: success - token & user received", { token: asAny.token, user: asAny.user });
+  return { token: asAny.token, user: asAny.user } as AuthResponse;
 }

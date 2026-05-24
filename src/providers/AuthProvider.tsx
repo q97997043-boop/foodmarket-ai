@@ -92,8 +92,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback((newToken: string, newUser: User) => {
     logInit("auth", "login success", { email: newUser.email });
     localStorage.setItem("auth-token", newToken);
+    console.log("AuthProvider: saved auth-token to localStorage", { key: "auth-token", tokenPreview: String(newToken).slice(0, 8) });
     try {
       localStorage.setItem("auth-user", JSON.stringify(newUser));
+      console.log("AuthProvider: saved auth-user to localStorage", { userEmail: newUser.email });
     } catch (err) {
       logInit("auth", "warning: failed to persist user to localStorage", String(err));
     }
