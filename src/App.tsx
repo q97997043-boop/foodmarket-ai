@@ -1,13 +1,10 @@
 import React, { Suspense, lazy } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { RealtimeProvider } from "./providers/RealtimeProvider";
 import { RestaurantProvider } from "./providers/RestaurantProvider";
 import { MainLayout } from "./layouts/MainLayout";
 import { AuthProvider } from "./providers/AuthProvider";
-import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useRestaurant } from "./providers/RestaurantProvider";
-import { useAuth } from "./providers/AuthProvider";
-import { useI18n } from "./providers/I18nProvider";
 import { PageFallback, RouteErrorBoundary, NotFoundPage } from "./components/RouteStatus";
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -23,59 +20,22 @@ const TvMode = lazy(() => import("./pages/TvMode").then((m) => ({ default: m.TvM
 const CustomerDisplay = lazy(() => import("./pages/CustomerDisplay").then((m) => ({ default: m.CustomerDisplay })));
 const QrMenu = lazy(() => import("./pages/QrMenu").then((m) => ({ default: m.default })));
 
-const PUBLIC_PATHS = ["/login", "/register", "/m"];
-
 function WorkspaceGate({ children }: { children: React.ReactNode }) {
-  const location = useLocation();
-  const { token } = useAuth();
-  const { t } = useI18n();
-  const { isWorkspaceLoading, settingsError } = useRestaurant();
-
-  const isPublic =
-    PUBLIC_PATHS.some((p) => location.pathname.startsWith(p)) ||
-    location.pathname.startsWith("/m/");
-
-  if (!token || isPublic) {
-    return <>{children}</>;
-  }
-
-  if (isWorkspaceLoading) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-950 text-slate-400">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-        <p>{t("workspace.loading")}</p>
-      </div>
-    );
-  }
-
-  if (settingsError) {
-    return (
-      <>
-        <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-200">
-          {t("workspace.settingsFallback", { error: settingsError })}
-        </div>
-        {children}
-      </>
-    );
-  }
-
   return <>{children}</>;
 }
 
 function AppRoutes() {
   const { legacyId, restaurant } = useRestaurant();
-  const { token } = useAuth();
 
   const routes = (
     <WorkspaceGate>
       <ErrorBoundary>
         <Suspense fallback={<PageFallback />}>
           <Routes>
-          <Route path="/login" element={<Login />} errorElement={<RouteErrorBoundary />} />
-          <Route path="/register" element={<Register />} errorElement={<RouteErrorBoundary />} />
-          <Route path="/m" element={<Navigate to="/" replace />} />
-          <Route path="/m/:slug" element={<QrMenu />} errorElement={<RouteErrorBoundary />} />
-          <Route element={<ProtectedRoute />} errorElement={<RouteErrorBoundary />}>
+            <Route path="/login" element={<Login />} errorElement={<RouteErrorBoundary />} />
+            <Route path="/register" element={<Register />} errorElement={<RouteErrorBoundary />} />
+            <Route path="/m" element={<Navigate to="/" replace />} />
+            <Route path="/m/:slug" element={<QrMenu />} errorElement={<RouteErrorBoundary />} />
             <Route path="/dashboard" element={<MainLayout />}>
               <Route index element={<Dashboard />} />
             </Route>
@@ -90,8 +50,7 @@ function AppRoutes() {
               <Route path="admin/settings" element={<Settings />} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
-            </Route>
-            <Route path="*" element={<Navigate to={token ? "/" : "/login"} replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Suspense>
       </ErrorBoundary>

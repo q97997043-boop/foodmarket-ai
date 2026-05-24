@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../providers/AuthProvider";
+import { Link } from "react-router-dom";
 import { useI18n } from "../providers/I18nProvider";
 import { loginViaRest } from "../lib/auth-api";
 import { logInit } from "../lib/init-log";
@@ -14,8 +13,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-  const { login } = useAuth();
   const { t, translateError } = useI18n();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,18 +31,17 @@ export default function Login() {
 
       console.log("Login: token received", result.token);
       console.log("Login: user received", result.user);
-      login(result.token, result.user);
-      console.log("Login: localStorage should now contain auth-token and auth-user");
-      console.log("Login: navigating to /dashboard");
+      localStorage.setItem("auth-token", result.token);
+      localStorage.setItem("auth-user", JSON.stringify(result.user));
+      console.log("Login: token stored in localStorage", {
+        key: "auth-token",
+        tokenPreview: String(result.token).slice(0, 8),
+      });
+      console.log("Login: user stored in localStorage", { email: result.user.email });
       logInit("login", "success, redirecting to dashboard");
-      navigate("/dashboard", { replace: true });
-      // Fallback: if React Router navigation doesn't change location, force it after short delay
-      setTimeout(() => {
-        if (window.location.pathname !== "/dashboard" && window.location.pathname !== "/") {
-          console.warn("Login: navigate failed, forcing full-page navigation to /dashboard");
-          window.location.href = "/dashboard";
-        }
-      }, 600);
+      console.log("Login: redirecting to /dashboard");
+      window.location.href = "/dashboard";
+      return;
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       const message = translateError(errorMsg);
