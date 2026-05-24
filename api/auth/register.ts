@@ -33,6 +33,7 @@ export default async function handler(
     return res.status(200).json({
       success: true,
       token: "demo-token",
+      route: "api/auth/register.ts",
       user: {
         id: "1",
         email: String(body?.email ?? "demo@example.com"),
