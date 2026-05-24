@@ -146,10 +146,24 @@ app.all("/api/trpc/*", async (c) => {
   logApi("trpc", `${c.req.method} ${path}`);
 
   try {
+    // Dynamically import the appRouter to avoid top-level module resolution
+    // failures in serverless environments where compiled paths may differ.
+    let appRouterModule: any;
+    try {
+      appRouterModule = await import("./router");
+    } catch (e1) {
+      try {
+        appRouterModule = await import("./router.js");
+      } catch (e2) {
+        logApiError("trpc", "router import failed", { e1: String(e1), e2: String(e2) });
+        return c.json({ error: "Server error", details: "Failed to load router module" }, 500);
+      }
+    }
+
     const response = await fetchRequestHandler({
       endpoint: "/api/trpc",
       req: c.req.raw,
-      router: appRouter,
+      router: appRouterModule.appRouter ?? appRouterModule.default ?? appRouterModule,
       createContext: (opts) => createContext(opts),
       onError: ({ path: procedurePath, error }) => {
         logApiError("trpc", `procedure error: ${procedurePath}`, error.message);
@@ -162,8 +176,7 @@ app.all("/api/trpc/*", async (c) => {
     return c.json(
       {
         error: {
-          message:
-            err instanceof Error ? err.message : "Internal server error",
+          message: err instanceof Error ? err.message : "Internal server error",
           code: "INTERNAL_SERVER_ERROR",
         },
       },
