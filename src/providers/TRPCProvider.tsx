@@ -5,12 +5,19 @@ import { trpc } from "../lib/trpc";
 import { logInit } from "../lib/init-log";
 
 function getApiUrl() {
+  // In production prefer the browser origin to avoid injected or stale VITE_API_URL
+  if (import.meta.env.PROD && typeof window !== "undefined") {
+    return `${window.location.origin}/api/trpc`;
+  }
+
   if (import.meta.env.VITE_API_URL) {
     return `${import.meta.env.VITE_API_URL.replace(/\/$/, "")}/api/trpc`;
   }
+
   if (typeof window !== "undefined") {
     return `${window.location.origin}/api/trpc`;
   }
+
   return "/api/trpc";
 }
 
@@ -66,10 +73,24 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
                   url: String(url),
                   status: res.status,
                 });
+                // If the server returned non-JSON (HTML 404 or a static page), throw an explicit error
+                const contentType = res.headers.get("content-type") || "";
+                if (!contentType.includes("application/json")) {
+                  const text = await res.clone().text();
+                  logInit("trpc-client", "non-json response", {
+                    url: String(url),
+                    status: res.status,
+                    snippet: text.slice(0, 500),
+                    contentType,
+                  });
+                  throw new Error("API route not found");
+                }
+
                 if (!res.ok) {
                   const text = await res.clone().text();
                   logInit("trpc-client", "error body", text.slice(0, 500));
                 }
+
                 return res;
               })
               .catch((err) => {
