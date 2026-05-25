@@ -15,7 +15,7 @@ import { Paths } from "../contracts/constants";
 import { registerUser, loginUser } from "./lib/auth-service";
 import { logApi, logApiError } from "./lib/log";
 import { saveProductImageFile } from "./lib/product-image-upload";
-import { verifyAuthHeader } from "./lib/verifyAuthHeaderUtil";
+import { verifyAuthHeader } from "./lib/verifyAuthHeaderUtil.js";
 import path from "node:path";
 import { serveStatic } from "@hono/node-server/serve-static";
 
