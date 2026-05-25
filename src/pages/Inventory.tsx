@@ -33,11 +33,11 @@ export function Inventory() {
   const { t, currency } = useI18n();
   const utils = trpc.useUtils();
 
-  const { data: products, isLoading } = trpc.menu.getProducts.useQuery(
+  const { data: products, isLoading: isProductsLoading } = trpc.menu.getProducts.useQuery(
     { restaurantId: restaurantId! },
     { enabled: !!restaurantId },
   );
-  const { data: categories } = trpc.menu.getCategories.useQuery(
+  const { data: categories, isLoading: isCategoriesLoading } = trpc.menu.getCategories.useQuery(
     { restaurantId: restaurantId! },
     { enabled: !!restaurantId },
   );
@@ -63,11 +63,19 @@ export function Inventory() {
   const [editingCategoryName, setEditingCategoryName] = useState("");
 
   const refreshMenu = useCallback(async () => {
-    if (!restaurantId) return;
-    await Promise.all([
-      utils.menu.getProducts.invalidate({ restaurantId }),
-      utils.menu.getCategories.invalidate({ restaurantId }),
-    ]);
+    if (!restaurantId) {
+      console.warn("[Inventory] Missing restaurantId for refresh");
+      return;
+    }
+    try {
+      await Promise.all([
+        utils.menu.getProducts.invalidate({ restaurantId }),
+        utils.menu.getCategories.invalidate({ restaurantId }),
+      ]);
+      console.log("[Inventory] Menu refreshed successfully");
+    } catch (err) {
+      console.error("[Inventory] Failed to refresh menu:", err);
+    }
   }, [restaurantId, utils]);
 
   const showToast = (message: string, variant: "success" | "error") => {
@@ -104,21 +112,28 @@ export function Inventory() {
   const handleSave = async () => {
     setFormError(null);
     if (!restaurantId) {
-      setFormError(t("inventory.errors.noRestaurant"));
+      const error = t("inventory.errors.noRestaurant");
+      console.error("[Inventory] Save failed:", error);
+      setFormError(error);
       return;
     }
     if (!form.name.trim()) {
-      setFormError(t("inventory.errors.nameRequired"));
+      const error = t("inventory.errors.nameRequired");
+      console.error("[Inventory] Save failed:", error);
+      setFormError(error);
       return;
     }
     const basePrice = parseFloat(form.basePrice);
     if (!Number.isFinite(basePrice) || basePrice <= 0) {
-      setFormError(t("inventory.errors.priceRequired"));
+      const error = t("inventory.errors.priceRequired");
+      console.error("[Inventory] Save failed:", error);
+      setFormError(error);
       return;
     }
 
     try {
       if (modal === "create") {
+        console.log("[Inventory] Creating product:", form.name);
         await createProduct.mutateAsync({
           restaurantId,
           name: form.name.trim(),
@@ -130,8 +145,10 @@ export function Inventory() {
           stockQuantity: form.stockQuantity,
           isAvailable: form.isAvailable,
         });
+        console.log("[Inventory] Product created successfully");
         showToast(t("inventory.productCreated"), "success");
       } else if (editId) {
+        console.log("[Inventory] Updating product:", editId);
         await updateProduct.mutateAsync({
           id: editId,
           restaurantId,
@@ -144,25 +161,38 @@ export function Inventory() {
           stockQuantity: form.stockQuantity,
           isAvailable: form.isAvailable,
         });
+        console.log("[Inventory] Product updated successfully");
         showToast(t("inventory.productUpdated"), "success");
       }
       setModal(null);
+      setForm(emptyProduct);
+      setEditId(null);
       await refreshMenu();
     } catch (err) {
       const message = parseFetchError(err);
+      console.error("[Inventory] Save operation failed:", message, err);
       setFormError(message);
       showToast(message, "error");
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!restaurantId || !confirm(t("inventory.deleteConfirm"))) return;
+    if (!restaurantId) {
+      console.error("[Inventory] Cannot delete: missing restaurantId");
+      showToast(t("inventory.errors.noRestaurant"), "error");
+      return;
+    }
+    if (!confirm(t("inventory.deleteConfirm"))) return;
     try {
+      console.log("[Inventory] Deleting product:", id);
       await deleteProduct.mutateAsync({ id, restaurantId });
+      console.log("[Inventory] Product deleted successfully");
       showToast(t("inventory.productDeleted"), "success");
       await refreshMenu();
     } catch (err) {
-      showToast(parseFetchError(err), "error");
+      const message = parseFetchError(err);
+      console.error("[Inventory] Delete operation failed:", message, err);
+      showToast(message, "error");
     }
   };
 
@@ -170,13 +200,26 @@ export function Inventory() {
     name: string,
     opts?: { selectInForm?: boolean },
   ) => {
-    if (!restaurantId || !name.trim()) return;
+    if (!restaurantId) {
+      console.error("[Inventory] Cannot create category: missing restaurantId");
+      showToast(t("inventory.errors.noRestaurant"), "error");
+      return;
+    }
+    if (!name.trim()) {
+      console.warn("[Inventory] Cannot create category: empty name");
+      showToast("Category name is required", "error");
+      return;
+    }
     try {
+      console.log("[Inventory] Creating category:", name);
       const created = await createCategory.mutateAsync({
         restaurantId,
         name: name.trim(),
       });
+      console.log("[Inventory] Category created successfully:", created.id);
+      
       await refreshMenu();
+      
       if (opts?.selectInForm) {
         setForm((f) => ({ ...f, categoryId: created.id }));
         setShowModalNewCategory(false);
@@ -186,45 +229,74 @@ export function Inventory() {
       }
       showToast(t("inventory.categoryCreated"), "success");
     } catch (err) {
-      showToast(parseFetchError(err), "error");
+      const message = parseFetchError(err);
+      console.error("[Inventory] Create category failed:", message, err);
+      showToast(message, "error");
     }
   };
 
   const handleUpdateCategory = async (id: string) => {
-    if (!restaurantId || !editingCategoryName.trim()) return;
+    if (!restaurantId) {
+      console.error("[Inventory] Cannot update category: missing restaurantId");
+      showToast(t("inventory.errors.noRestaurant"), "error");
+      return;
+    }
+    if (!editingCategoryName.trim()) {
+      console.warn("[Inventory] Cannot update category: empty name");
+      showToast("Category name is required", "error");
+      return;
+    }
     try {
+      console.log("[Inventory] Updating category:", id);
       await updateCategory.mutateAsync({
         id,
         restaurantId,
         name: editingCategoryName.trim(),
       });
+      console.log("[Inventory] Category updated successfully");
       setEditingCategoryId(null);
       setEditingCategoryName("");
       await refreshMenu();
       showToast(t("inventory.categoryUpdated"), "success");
     } catch (err) {
-      showToast(parseFetchError(err), "error");
+      const message = parseFetchError(err);
+      console.error("[Inventory] Update category failed:", message, err);
+      showToast(message, "error");
     }
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (!restaurantId || !confirm(t("inventory.deleteCategoryConfirm"))) return;
+    if (!restaurantId) {
+      console.error("[Inventory] Cannot delete category: missing restaurantId");
+      showToast(t("inventory.errors.noRestaurant"), "error");
+      return;
+    }
+    if (!confirm(t("inventory.deleteCategoryConfirm"))) return;
     try {
+      console.log("[Inventory] Deleting category:", id);
       await deleteCategory.mutateAsync({ id, restaurantId });
+      console.log("[Inventory] Category deleted successfully");
       if (form.categoryId === id) {
         setForm((f) => ({ ...f, categoryId: "" }));
       }
       await refreshMenu();
       showToast(t("inventory.categoryDeleted"), "success");
     } catch (err) {
-      showToast(parseFetchError(err), "error");
+      const message = parseFetchError(err);
+      console.error("[Inventory] Delete category failed:", message, err);
+      showToast(message, "error");
     }
   };
 
   const isSaving =
-    createProduct.isLoading ||
-    updateProduct.isLoading ||
-    createCategory.isLoading;
+    createProduct.isPending ||
+    updateProduct.isPending ||
+    deleteProduct.isPending ||
+    createCategory.isPending ||
+    updateCategory.isPending ||
+    deleteCategory.isPending;
+
+  const isLoading = isProductsLoading || isCategoriesLoading;
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-950 p-6 text-slate-50">
