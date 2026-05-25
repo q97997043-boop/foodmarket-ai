@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAuthHeader } from "../lib/verifyAuthHeader";
+import { verifyAuthHeader } from "../lib/verifyAuthHeaderUtil";
 import { prisma } from "../prisma-client";
 import { seedRestaurantDefaults } from "../lib/seed";
 import { nextLegacyRestaurantId } from "../lib/ids";
