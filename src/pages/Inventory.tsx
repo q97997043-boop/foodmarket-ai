@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import {
   PackageOpen,
   Plus,
@@ -33,14 +33,20 @@ export function Inventory() {
   const { t, currency } = useI18n();
   const utils = trpc.useUtils();
 
-  const { data: products, isLoading: isProductsLoading } = trpc.menu.getProducts.useQuery(
+  const productsQuery = trpc.menu.getProducts.useQuery(
     { restaurantId: restaurantId! },
     { enabled: !!restaurantId },
   );
-  const { data: categories, isLoading: isCategoriesLoading } = trpc.menu.getCategories.useQuery(
+  const categoriesQuery = trpc.menu.getCategories.useQuery(
     { restaurantId: restaurantId! },
     { enabled: !!restaurantId },
   );
+
+  const { data: products, isLoading: isProductsLoading, error: productsError, status: productsStatus } = productsQuery;
+  const { data: categories, isLoading: isCategoriesLoading, error: categoriesError, status: categoriesStatus } = categoriesQuery;
+
+  const productsList = products ?? [];
+  const categoriesList = categories ?? [];
 
   const createProduct = trpc.menu.createProduct.useMutation();
   const updateProduct = trpc.menu.updateProduct.useMutation();
@@ -61,6 +67,28 @@ export function Inventory() {
 
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
+
+  // Debug logging for loading states
+  useEffect(() => {
+    console.log(
+      "[Inventory Debug] restaurantId:",
+      restaurantId,
+      "| productsLoading:",
+      isProductsLoading,
+      "| categoriesLoading:",
+      isCategoriesLoading,
+      "| productsStatus:",
+      productsStatus,
+      "| categoriesStatus:",
+      categoriesStatus,
+    );
+    if (productsError) {
+      console.error("[Inventory Debug] Products Error:", productsError);
+    }
+    if (categoriesError) {
+      console.error("[Inventory Debug] Categories Error:", categoriesError);
+    }
+  }, [restaurantId, isProductsLoading, isCategoriesLoading, productsStatus, categoriesStatus, productsError, categoriesError]);
 
   const refreshMenu = useCallback(async () => {
     if (!restaurantId) {
@@ -289,14 +317,50 @@ export function Inventory() {
   };
 
   const isSaving =
-    createProduct.isPending ||
-    updateProduct.isPending ||
-    deleteProduct.isPending ||
-    createCategory.isPending ||
-    updateCategory.isPending ||
-    deleteCategory.isPending;
+    createProduct.isLoading ||
+    updateProduct.isLoading ||
+    deleteProduct.isLoading ||
+    createCategory.isLoading ||
+    updateCategory.isLoading ||
+    deleteCategory.isLoading;
 
-  const isLoading = isProductsLoading || isCategoriesLoading;
+  const isLoading = productsStatus === "loading" || categoriesStatus === "loading";
+
+  // Debug: Log query lifecycle and final loading state
+  useEffect(() => {
+    if (productsStatus === "loading" || categoriesStatus === "loading") {
+      console.log("FETCH START");
+    }
+    if (
+      productsStatus === "success" ||
+      productsStatus === "error" ||
+      categoriesStatus === "success" ||
+      categoriesStatus === "error"
+    ) {
+      console.log("FETCH END");
+    }
+    if (!isLoading) {
+      console.log("LOADING FALSE");
+    }
+    console.log(
+      "[Inventory Debug] productsStatus:",
+      productsStatus,
+      "categoriesStatus:",
+      categoriesStatus,
+      "productsError:",
+      productsError,
+      "categoriesError:",
+      categoriesError,
+      "restaurantId:",
+      restaurantId,
+    );
+    if (productsError) {
+      console.error("[Inventory Debug] Products Error:", productsError);
+    }
+    if (categoriesError) {
+      console.error("[Inventory Debug] Categories Error:", categoriesError);
+    }
+  }, [productsStatus, categoriesStatus, isLoading, productsError, categoriesError, restaurantId]);
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-950 p-6 text-slate-50">
@@ -355,9 +419,9 @@ export function Inventory() {
           </button>
         </div>
 
-        {categories && categories.length > 0 ? (
+        {categoriesList.length > 0 ? (
           <ul className="space-y-2">
-            {categories.map((c) => (
+            {categoriesList.map((c) => (
               <li
                 key={c.id}
                 className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2"
@@ -392,7 +456,7 @@ export function Inventory() {
                 ) : (
                   <>
                     <span className="flex-1 font-medium text-slate-200">{c.name}</span>
-                    <span className="text-xs text-slate-500">
+                        <span className="text-xs text-slate-500">
                       {t("inventory.productCount", {
                         count: c._count?.products ?? 0,
                       })}
@@ -427,11 +491,13 @@ export function Inventory() {
 
       {isLoading ? (
         <div className="flex justify-center py-20">
+          {console.log("RENDERING SPINNER - isLoading is true")}
           <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {products?.map((product) => (
+          {console.log("RENDERING PRODUCTS - isLoading is false")}
+          {productsList.map((product) => (
             <div key={product.id} className="relative">
               <ProductCard product={product} currency={currency} />
               <div className="absolute right-2 top-2 flex gap-1">
@@ -520,7 +586,7 @@ export function Inventory() {
                   className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3"
                 >
                   <option value="">{t("inventory.noCategory")}</option>
-                  {categories?.map((c) => (
+                  {categoriesList.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
