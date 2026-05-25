@@ -42,11 +42,26 @@ export function Inventory() {
     { enabled: !!restaurantId },
   );
 
-  const { data: products, isLoading: isProductsLoading, error: productsError, status: productsStatus } = productsQuery;
-  const { data: categories, isLoading: isCategoriesLoading, error: categoriesError, status: categoriesStatus } = categoriesQuery;
+  const {
+    data: productsData,
+    isFetching: isProductsFetching,
+    error: productsError,
+    status: productsStatus,
+  } = productsQuery;
+  const {
+    data: categoriesData,
+    isFetching: isCategoriesFetching,
+    error: categoriesError,
+    status: categoriesStatus,
+  } = categoriesQuery;
 
-  const productsList = products ?? [];
-  const categoriesList = categories ?? [];
+  const productsList = productsData ?? [];
+  const categoriesList = categoriesData ?? [];
+  const productsCount = productsList.length;
+  const categoriesCount = categoriesList.length;
+  const anyQueryLoading = isProductsFetching || isCategoriesFetching;
+  const hasProductError = Boolean(productsError);
+  const hasCategoryError = Boolean(categoriesError);
 
   const createProduct = trpc.menu.createProduct.useMutation();
   const updateProduct = trpc.menu.updateProduct.useMutation();
@@ -68,27 +83,23 @@ export function Inventory() {
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
 
-  // Debug logging for loading states
+  // Debug logging for loading states and render safety
   useEffect(() => {
-    console.log(
-      "[Inventory Debug] restaurantId:",
-      restaurantId,
-      "| productsLoading:",
-      isProductsLoading,
-      "| categoriesLoading:",
-      isCategoriesLoading,
-      "| productsStatus:",
-      productsStatus,
-      "| categoriesStatus:",
-      categoriesStatus,
-    );
+    console.log("Inventory rendered");
+    console.log("restaurantId:", restaurantId);
+    console.log("categoriesCount:", categoriesCount);
+    console.log("productsCount:", productsCount);
+    console.log("anyQueryLoading:", anyQueryLoading);
+    console.log("productsError:", productsError);
+    console.log("categoriesError:", categoriesError);
+
     if (productsError) {
       console.error("[Inventory Debug] Products Error:", productsError);
     }
     if (categoriesError) {
       console.error("[Inventory Debug] Categories Error:", categoriesError);
     }
-  }, [restaurantId, isProductsLoading, isCategoriesLoading, productsStatus, categoriesStatus, productsError, categoriesError]);
+  }, [restaurantId, categoriesCount, productsCount, anyQueryLoading, productsError, categoriesError]);
 
   const refreshMenu = useCallback(async () => {
     if (!restaurantId) {
@@ -324,8 +335,6 @@ export function Inventory() {
     updateCategory.isLoading ||
     deleteCategory.isLoading;
 
-  const isLoading = productsStatus === "loading" || categoriesStatus === "loading";
-
   // Debug: Log query lifecycle and final loading state
   useEffect(() => {
     if (productsStatus === "loading" || categoriesStatus === "loading") {
@@ -338,9 +347,6 @@ export function Inventory() {
       categoriesStatus === "error"
     ) {
       console.log("FETCH END");
-    }
-    if (!isLoading) {
-      console.log("LOADING FALSE");
     }
     console.log(
       "[Inventory Debug] productsStatus:",
@@ -360,7 +366,7 @@ export function Inventory() {
     if (categoriesError) {
       console.error("[Inventory Debug] Categories Error:", categoriesError);
     }
-  }, [productsStatus, categoriesStatus, isLoading, productsError, categoriesError, restaurantId]);
+  }, [productsStatus, categoriesStatus, productsError, categoriesError, restaurantId]);
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-950 p-6 text-slate-50">
@@ -383,14 +389,30 @@ export function Inventory() {
         </button>
       </header>
 
+      {!restaurantId && (
+        <div className="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+          Restaurant data is not yet available. Inventory is still usable once the workspace loads.
+        </div>
+      )}
+
       <section className="mb-8 rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
         <div className="mb-4 flex items-center gap-2">
           <FolderOpen className="h-5 w-5 text-emerald-400" />
           <h2 className="text-lg font-semibold text-white">
             {t("inventory.categoriesTitle")}
           </h2>
+          {isCategoriesFetching && (
+            <span className="ml-2 rounded-full bg-slate-800 px-2 py-1 text-xs text-slate-200">
+              Loading categories…
+            </span>
+          )}
         </div>
         <p className="mb-4 text-sm text-slate-400">{t("inventory.categoriesHint")}</p>
+        {hasCategoryError && (
+          <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            Failed to load categories. Showing empty category list.
+          </div>
+        )}
 
         <div className="mb-4 flex flex-wrap gap-2">
           <input
@@ -489,15 +511,35 @@ export function Inventory() {
         )}
       </section>
 
-      {isLoading ? (
-        <div className="flex justify-center py-20">
-          {console.log("RENDERING SPINNER - isLoading is true")}
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-white">Products</h2>
+          {anyQueryLoading && (
+            <p className="mt-1 text-sm text-slate-400">Loading products and categories…</p>
+          )}
+          {hasProductError && (
+            <p className="mt-1 text-sm text-red-300">
+              Failed to load products. Showing saved data or empty list.
+            </p>
+          )}
         </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {console.log("RENDERING PRODUCTS - isLoading is false")}
-          {productsList.map((product) => (
+        {anyQueryLoading && (
+          <div className="flex items-center gap-2 rounded-full bg-slate-800/80 px-3 py-1 text-sm text-slate-200">
+            <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+            <span>Refreshing inventory…</span>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {productsList.length === 0 ? (
+          <div className="col-span-full rounded-2xl border border-slate-700 bg-slate-900/70 p-8 text-center text-slate-400">
+            {hasProductError
+              ? "No products loaded due to a fetch error. You can create new products manually."
+              : "No products found yet. Add a product to get started."}
+          </div>
+        ) : (
+          productsList.map((product) => (
             <div key={product.id} className="relative">
               <ProductCard product={product} currency={currency} />
               <div className="absolute right-2 top-2 flex gap-1">
@@ -517,9 +559,9 @@ export function Inventory() {
                 </button>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
