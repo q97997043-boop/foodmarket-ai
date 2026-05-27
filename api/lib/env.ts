@@ -1,20 +1,25 @@
-const databaseUrl = process.env.DATABASE_URL?.trim();
+const databaseUrl = (
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_PRISMA_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.POSTGRES_URL_NON_POOLING
+)?.trim();
 const isProduction = process.env.NODE_ENV === "production";
 
 if (!databaseUrl) {
-  throw new Error(
-    "DATABASE_URL environment variable must be set. Remove SQLite fallback and configure PostgreSQL."
+  console.warn(
+    "[ENV WARNING] DATABASE_URL (or fallback Vercel env vars) is not set in this environment."
   );
+} else {
+  console.log("[ENV] Using DATABASE_URL from environment/fallbacks");
+  console.log("[ENV] Configuration:", {
+    isProduction,
+    databaseUrl: databaseUrl.substring(0, 50) + "...",
+  });
 }
-
-console.log("[ENV] Using DATABASE_URL from environment");
-console.log("[ENV] Configuration:", {
-  isProduction,
-  databaseUrl: databaseUrl.substring(0, 50) + "...",
-});
 
 export const env = {
   isProduction,
-  DATABASE_URL: databaseUrl,
+  DATABASE_URL: databaseUrl || "",
   JWT_SECRET: process.env.JWT_SECRET ?? "foodmarket-secret",
 };

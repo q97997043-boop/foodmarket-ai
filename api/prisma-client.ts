@@ -1,12 +1,19 @@
 import { PrismaClient } from "@prisma/client";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL environment variable is required. Remove SQLite fallback and configure PostgreSQL."
-  );
-}
+const databaseUrl = (
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_PRISMA_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.POSTGRES_URL_NON_POOLING
+)?.trim();
 
-process.env.DATABASE_URL = String(process.env.DATABASE_URL).trim();
+if (!databaseUrl) {
+  console.warn(
+    "[PRISMA CLIENT WARNING] DATABASE_URL (or Vercel PostgreSQL integration fallbacks) is not set in this environment."
+  );
+} else {
+  process.env.DATABASE_URL = databaseUrl;
+}
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

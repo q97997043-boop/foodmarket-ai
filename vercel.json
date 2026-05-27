@@ -2,6 +2,10 @@
   "outputDirectory": "dist",
   "routes": [
     {
+      "src": "/api/debug-login",
+      "dest": "/api/debug-login.ts"
+    },
+    {
       "src": "/api/auth/login",
       "dest": "/api/auth/login.ts"
     },

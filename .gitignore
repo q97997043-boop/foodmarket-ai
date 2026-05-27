@@ -7,3 +7,4 @@ dist/
 
 # Vercel and caches
 .vercel/
+.env*
