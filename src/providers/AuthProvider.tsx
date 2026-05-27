@@ -22,6 +22,7 @@ type AuthContextType = {
   isAuthReady: boolean;
   isAuthenticated: boolean;
   login: (token: string, user: User) => void;
+  updateUser: (user: User | null) => void;
   logout: () => void;
 };
 
@@ -50,6 +51,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
   });
+
+  const updateUser = useCallback((newUser: User | null) => {
+    setUser(newUser);
+    if (newUser) {
+      try {
+        localStorage.setItem("auth-user", JSON.stringify(newUser));
+        console.log("AuthProvider: persisted updated auth-user", {
+          userEmail: newUser.email,
+          restaurantId: newUser.restaurantId,
+        });
+      } catch (err) {
+        logInit("auth", "warning: failed to persist updated user to localStorage", String(err));
+      }
+    } else {
+      localStorage.removeItem("auth-user");
+    }
+  }, []);
 
   const logout = useCallback(() => {
     logInit("auth", "logout — clearing session");
@@ -87,11 +105,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         const payload = await res.json();
         if (mounted && payload?.user) {
+          const fetchedUser = payload.user as User;
           logInit("auth", "session validated", {
-            email: payload.user.email,
-            restaurantId: payload.user.restaurantId,
+            email: fetchedUser.email,
+            restaurantId: fetchedUser.restaurantId,
           });
-          setUser(payload.user as User);
+          updateUser(fetchedUser);
           setIsAuthenticated(true);
         } else if (mounted) {
           setIsErrorState("Invalid auth response");
@@ -117,17 +136,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logInit("auth", "login success", { email: newUser.email });
     localStorage.setItem("auth-token", newToken);
     console.log("AuthProvider: saved auth-token to localStorage", { key: "auth-token", tokenPreview: String(newToken).slice(0, 8) });
-    try {
-      localStorage.setItem("auth-user", JSON.stringify(newUser));
-      console.log("AuthProvider: saved auth-user to localStorage", { userEmail: newUser.email });
-    } catch (err) {
-      logInit("auth", "warning: failed to persist user to localStorage", String(err));
-    }
+    updateUser(newUser);
     setToken(newToken);
-    setUser(newUser);
     setIsAuthenticated(true);
-    console.log("AuthProvider: auth state updated", { token: !!newToken, userEmail: newUser.email });
-  }, []);
+    console.log("AuthProvider: auth state updated", {
+      token: !!newToken,
+      userEmail: newUser.email,
+      restaurantId: newUser.restaurantId,
+    });
+  }, [updateUser]);
 
   const currentUser = user;
   const isLoading = authPending && !authTimedOut;
@@ -142,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user: currentUser, token, isLoading, isAuthReady, isAuthenticated, login, logout }}
+      value={{ user: currentUser, token, isLoading, isAuthReady, isAuthenticated, login, updateUser, logout }}
     >
       {children}
     </AuthContext.Provider>

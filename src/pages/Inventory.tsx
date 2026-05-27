@@ -235,8 +235,7 @@ export function Inventory() {
 
     try {
       if (modal === "create") {
-        console.log("[Inventory] Creating product:", form.name);
-        await createProduct.mutateAsync({
+        const payload = {
           restaurantId,
           name: form.name.trim(),
           description: form.description.trim() || undefined,
@@ -246,7 +245,10 @@ export function Inventory() {
           categoryId: form.categoryId || null,
           stockQuantity: form.stockQuantity,
           isAvailable: form.isAvailable,
-        });
+        };
+        console.log("PRODUCT_MUTATION_INPUT", payload);
+        console.log("[Inventory] Creating product:", form.name);
+        await createProduct.mutateAsync(payload);
         console.log("[Inventory] Product created successfully");
         showToast(t("inventory.productCreated"), "success");
       } else if (editId) {
@@ -314,11 +316,13 @@ export function Inventory() {
       return;
     }
     try {
-      console.log("[Inventory] Creating category:", name);
-      const created = await createCategory.mutateAsync({
+      const payload = {
         restaurantId,
         name: name.trim(),
-      });
+      };
+      console.log("CATEGORY_MUTATION_INPUT", payload);
+      console.log("[Inventory] Creating category:", name);
+      const created = await createCategory.mutateAsync(payload);
       console.log("[Inventory] Category created successfully:", created.id);
       
       await refreshMenu();

@@ -4,6 +4,7 @@ import type { User } from "../providers/AuthProvider";
 export type AuthResponse = {
   token: string;
   user: User;
+  restaurantId: string | null;
 };
 
 function getApiBase() {
@@ -68,7 +69,11 @@ export async function registerViaRest(input: {
   }
 
   logInit("register", "REST fallback success", { email: (data as AuthResponse).user?.email });
-  return data as AuthResponse;
+  return {
+    token: (data as any).token,
+    user: (data as any).user,
+    restaurantId: (data as any).restaurantId ?? (data as any).user?.restaurantId ?? null,
+  } as AuthResponse;
 }
 
 export async function loginViaRest(input: {
@@ -116,6 +121,10 @@ export async function loginViaRest(input: {
     throw new Error("Invalid auth response from server");
   }
 
-  console.log("loginViaRest: success - token & user received", { token: asAny.token, user: asAny.user });
-  return { token: asAny.token, user: asAny.user } as AuthResponse;
+  console.log("loginViaRest: success - token & user received", { token: asAny.token, user: asAny.user, restaurantId: asAny.restaurantId });
+  return {
+    token: asAny.token,
+    user: asAny.user,
+    restaurantId: asAny.restaurantId ?? asAny.user?.restaurantId ?? null,
+  } as AuthResponse;
 }

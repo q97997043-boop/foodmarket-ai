@@ -50,9 +50,10 @@ type RestaurantContextValue = {
 const RestaurantContext = createContext<RestaurantContextValue | null>(null);
 
 export function RestaurantProvider({ children }: { children: React.ReactNode }) {
-  const { user, token, isAuthReady } = useAuth();
+  const { user, token, isAuthReady, updateUser } = useAuth();
 
   const shouldFetchSettings = Boolean(token && user && isAuthReady);
+  const [retryCount, setRetryCount] = useState(0);
 
   const [data, setData] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -65,7 +66,7 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
     setIsError(false);
     setError(null);
     try {
-      console.log("RestaurantProvider: starting settings fetch", { token, user });
+      console.log("RestaurantProvider: starting settings fetch", { token, user, retryCount });
       const res = await fetch(`${window.location.origin}/api/settings/get`, {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
@@ -82,6 +83,7 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
       const payload = await res.json();
       console.log("RestaurantProvider: settings fetch payload", payload);
       setData(payload);
+      console.log("WORKSPACE =", payload);
       console.log("RESTAURANT_DATA =", payload?.restaurant ?? null);
       console.log("RESTAURANT_ID =", payload?.restaurant?.id ?? user?.restaurantId ?? null);
       saveBrandingCache({
@@ -93,11 +95,16 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
         restaurantId: payload?.restaurant?.id,
         name: payload?.restaurant?.name,
       });
+      setRetryCount(0);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setIsError(true);
       setError(message);
       warnInit("settings", "fetch failed — app will continue", message);
+      if (retryCount === 0) {
+        console.log("RestaurantProvider: retrying workspace fetch once");
+        setRetryCount(1);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -108,11 +115,12 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
       logInit("restaurant", "fetching settings…", {
         userId: user?.id,
         restaurantId: user?.restaurantId,
+        retryCount,
       });
       void refetch();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldFetchSettings]);
+  }, [shouldFetchSettings, retryCount]);
 
   const settingsPending = shouldFetchSettings && !data && !isError && isLoading;
   const settingsTimedOut = useLoadingTimeout(settingsPending, 3000);
@@ -134,15 +142,18 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
   const restaurant = data?.restaurant ?? null;
   const owner = data?.owner ?? null;
 
-  const sanitizeDisplayName = (n: string | null | undefined) => {
-    if (!n) return "FoodMarket AI";
-    if (/test|demo/i.test(n)) return "FoodMarket AI";
-    return n;
-  };
+  useEffect(() => {
+    if (restaurant && user && !user.restaurantId) {
+      console.log("RestaurantProvider: syncing restaurantId into auth user", {
+        userId: user.id,
+        currentRestaurantId: user.restaurantId,
+        workspaceRestaurantId: restaurant.id,
+      });
+      updateUser({ ...user, restaurantId: restaurant.id });
+    }
+  }, [restaurant, user, updateUser]);
 
-  const restaurantSanitized = restaurant
-    ? { ...restaurant, name: sanitizeDisplayName(restaurant.name) }
-    : null;
+  const restaurantSanitized = restaurant;
 
   const value = useMemo<RestaurantContextValue>(
     () => ({

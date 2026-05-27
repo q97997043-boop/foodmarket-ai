@@ -38,6 +38,63 @@ function slugify(name: string) {
   );
 }
 
+async function createRestaurantForUser(userId: string) {
+  const legacyId = await nextLegacyRestaurantId();
+  const slug = `restaurant-${legacyId}`;
+
+  const restaurant = await prisma.restaurant.create({
+    data: {
+      name: "Demo Restaurant",
+      slug,
+      legacyId,
+      tvSettings: { create: {} },
+    },
+  });
+
+  await seedRestaurantDefaults(restaurant.id);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { restaurantId: restaurant.id },
+  });
+
+  return restaurant;
+}
+
+export async function ensureRestaurantForUser(
+  userId: string,
+  restaurantId: string | null,
+) {
+  if (!restaurantId) {
+    logApi("auth-service", "ensuring restaurant for user", {
+      userId,
+      restaurantId: null,
+    });
+    return createRestaurantForUser(userId);
+  }
+
+  let restaurant = await prisma.restaurant.findUnique({
+    where: { id: restaurantId },
+  });
+
+  if (!restaurant) {
+    logApi("auth-service", "restaurant missing for user, creating default", {
+      userId,
+      restaurantId,
+    });
+    return createRestaurantForUser(userId);
+  }
+
+  if (!restaurant.legacyId) {
+    restaurant = await prisma.restaurant.update({
+      where: { id: restaurant.id },
+      data: { legacyId: await nextLegacyRestaurantId() },
+    });
+  }
+
+  await seedRestaurantDefaults(restaurant.id);
+  return restaurant;
+}
+
 export async function registerUser(input: RegisterInput): Promise<AuthResult> {
   logApi("auth-service", "register start", { email: input.email });
 
@@ -143,26 +200,41 @@ export async function loginUser(input: LoginInput): Promise<AuthResult> {
     });
   }
 
+  const restaurant = await ensureRestaurantForUser(user.id, user.restaurantId);
+  const updatedUser = await prisma.user.findUnique({
+    where: { id: user.id },
+  });
+
+  if (!updatedUser) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "User not found after login",
+    });
+  }
+
   const token = jwt.sign(
     {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      restaurantId: user.restaurantId,
+      id: updatedUser.id,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      restaurantId: updatedUser.restaurantId,
     },
     env.JWT_SECRET,
     { expiresIn: "7d" },
   );
 
-  logApi("auth-service", "login complete", { email: user.email });
+  logApi("auth-service", "login complete", {
+    email: user.email,
+    restaurantId: updatedUser.restaurantId,
+  });
 
   return {
     token,
     user: {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      restaurantId: user.restaurantId,
+      id: updatedUser.id,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      restaurantId: updatedUser.restaurantId,
     },
   };
 }

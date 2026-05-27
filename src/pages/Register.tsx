@@ -33,6 +33,9 @@ export default function Register() {
     try {
       logInit("register", "REST API request", { email: payload.email });
       const result = await registerViaRest(payload);
+      console.log("AUTH_TOKEN", result.token);
+      console.log("AUTH_USER", result.user);
+      console.log("RESTAURANT_ID", result.restaurantId ?? result.user.restaurantId);
 
       login(result.token, result.user);
       logInit("register", "auto-login, redirecting to dashboard");

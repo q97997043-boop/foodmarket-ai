@@ -32,8 +32,9 @@ export default function Login() {
       const result = await loginViaRest(payload);
       console.log("Login: request finished, result:", result);
 
-      console.log("Login: token received", result.token);
-      console.log("Login: user received", result.user);
+      console.log("AUTH_TOKEN", result.token);
+      console.log("AUTH_USER", result.user);
+      console.log("RESTAURANT_ID", result.restaurantId ?? result.user.restaurantId);
       login(result.token, result.user);
       console.log("Login: auth context updated");
       logInit("login", "success, redirecting to dashboard");

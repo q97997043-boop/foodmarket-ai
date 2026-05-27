@@ -1,39 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { verifyAuthHeader } from "../lib/verifyAuthHeaderUtil.js";
 import { prisma } from "../prisma-client";
-import { seedRestaurantDefaults } from "../lib/seed";
-import { nextLegacyRestaurantId } from "../lib/ids";
+import { ensureRestaurantForUser } from "../lib/auth-service.js";
 
 async function ensureRestaurant(userId: string, restaurantId: string | null) {
-  let id = restaurantId;
-
-  if (!id) {
-    const legacyId = await nextLegacyRestaurantId();
-    const slug = `restaurant-${legacyId}`;
-    const created = await prisma.restaurant.create({
-      data: {
-        name: "FoodMarket AI",
-        slug,
-        legacyId,
-        tvSettings: { create: {} },
-      },
-    });
-    await seedRestaurantDefaults(created.id);
-    await prisma.user.update({ where: { id: userId }, data: { restaurantId: created.id } });
-    id = created.id;
-  }
-
-  let restaurant = await prisma.restaurant.findUnique({ where: { id } });
-  if (!restaurant) {
-    throw new Error("Restaurant not found");
-  }
-
-  if (!restaurant.legacyId) {
-    await prisma.restaurant.update({ where: { id }, data: { legacyId: await nextLegacyRestaurantId() } });
-  }
-
-  await seedRestaurantDefaults(id);
-  return prisma.restaurant.findUnique({ where: { id } });
+  const restaurant = await ensureRestaurantForUser(userId, restaurantId);
+  return restaurant;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

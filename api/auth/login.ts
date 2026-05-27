@@ -39,6 +39,7 @@ export default async function handler(
     return res.status(200).json({
       success: true,
       token: result.token,
+      restaurantId: result.user.restaurantId,
       user: result.user,
     });
   } catch (err) {
