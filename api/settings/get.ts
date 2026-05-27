@@ -10,23 +10,39 @@ async function ensureRestaurant(userId: string, restaurantId: string | null) {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Content-Type", "application/json");
+  console.log("SETTINGS REQUEST", req.method, req.headers?.authorization);
 
   if (req.method !== "GET" && req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed", method: req.method });
+    return res.status(405).json({
+      success: false,
+      message: "Method not allowed",
+      method: req.method,
+    });
   }
 
   try {
     const authHeader = req.headers?.authorization as string | undefined;
     const user = await verifyAuthHeader(authHeader);
     if (!user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
     }
 
     const restaurant = await ensureRestaurant(user.id, user.restaurantId);
     const owner = await prisma.user.findUnique({ where: { id: user.id } });
 
-    return res.status(200).json({ success: true, restaurant, owner });
+    return res.status(200).json({
+      success: true,
+      restaurant,
+      owner,
+    });
   } catch (err) {
-    return res.status(500).json({ error: "Server error", details: String(err) });
+    console.error("SETTINGS ERROR", err);
+    return res.status(500).json({
+      success: false,
+      message: err instanceof Error ? err.message : "Server error",
+    });
   }
 }

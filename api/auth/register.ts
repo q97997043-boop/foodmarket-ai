@@ -16,14 +16,15 @@ function parseJsonBody(body: unknown) {
 
 export default async function handler(
   req: VercelRequest,
-  res: VercelResponse
+  res: VercelResponse,
 ) {
   res.setHeader("Content-Type", "application/json");
+  console.log("REGISTER BODY", req.body);
 
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
-      error: "Method not allowed",
+      message: "Method not allowed",
       method: req.method,
     });
   }
@@ -38,6 +39,8 @@ export default async function handler(
       restaurantName: body?.restaurantName ? String(body.restaurantName) : undefined,
     });
 
+    console.log("REGISTER RESULT", result);
+
     return res.status(200).json({
       success: true,
       token: result.token,
@@ -46,14 +49,9 @@ export default async function handler(
     });
   } catch (err) {
     console.error("REGISTER ERROR", err);
-    try {
-      console.error("REGISTER ERROR (stringified)", JSON.stringify(err));
-    } catch (e) {
-      /* ignore */
-    }
-    return res.status(500).json({
+    return res.status(400).json({
       success: false,
-      error: err instanceof Error ? err.message : "Registration failed",
+      message: err instanceof Error ? err.message : "Registration failed",
     });
   }
 }

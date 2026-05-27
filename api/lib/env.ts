@@ -1,9 +1,4 @@
-import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-
-const defaultDbPath = pathToFileURL(
-  path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../prisma/sqlite.db"),
-).href;
+const defaultDbPath = "file:./api/prisma/sqlite.db";
 
 export const env = {
   isProduction: process.env.NODE_ENV === "production",
