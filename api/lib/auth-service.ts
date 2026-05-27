@@ -188,6 +188,8 @@ export async function registerUser(input: RegisterInput): Promise<AuthResult> {
 export async function loginUser(input: LoginInput): Promise<AuthResult> {
   try {
     logApi("auth-service", "login start", { email: input.email });
+    console.log("LOGIN SERVICE INPUT", { email: input.email, passwordSet: input.password.length > 0 });
+    console.log("JWT_SECRET SET", Boolean(env.JWT_SECRET));
 
     const user = await prisma.user.findUnique({
       where: { email: input.email },
@@ -248,6 +250,11 @@ export async function loginUser(input: LoginInput): Promise<AuthResult> {
     };
   } catch (err) {
     console.error("LOGIN SERVICE ERROR", err);
+    try {
+      console.error((err as any)?.stack ?? String(err));
+    } catch (e) {
+      /* ignore */
+    }
     if ((err as any)?.code) {
       console.error("PRISMA ERROR", err);
     }

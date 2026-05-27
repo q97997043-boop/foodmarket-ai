@@ -19,6 +19,7 @@ export default async function handler(
   res: VercelResponse,
 ) {
   res.setHeader("Content-Type", "application/json");
+  console.log("LOGIN HEADERS", req.headers);
   console.log("LOGIN BODY", req.body);
 
   if (req.method !== "POST") {
@@ -31,7 +32,16 @@ export default async function handler(
 
   try {
     const rawBody = req.body;
-    const body = parseJsonBody(rawBody ?? {});
+    let body;
+    try {
+      body = parseJsonBody(rawBody ?? {});
+    } catch (parseError) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid JSON body",
+        error: String(parseError),
+      });
+    }
 
     const result = await loginUser({
       email: String(body?.email ?? ""),
@@ -48,9 +58,15 @@ export default async function handler(
     });
   } catch (err) {
     console.error("LOGIN ERROR", err);
-    return res.status(400).json({
+    try {
+      console.error((err as any)?.stack ?? String(err));
+    } catch (e) {
+      /* ignore */
+    }
+    return res.status(500).json({
       success: false,
       message: err instanceof Error ? err.message : "Login failed",
+      error: String(err),
     });
   }
 }
