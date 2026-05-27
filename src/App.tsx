@@ -5,6 +5,7 @@ import { RestaurantProvider } from "./providers/RestaurantProvider";
 import { MainLayout } from "./layouts/MainLayout";
 import { AuthProvider } from "./providers/AuthProvider";
 import { useRestaurant } from "./providers/RestaurantProvider";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PageFallback, RouteErrorBoundary, NotFoundPage } from "./components/RouteStatus";
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -36,20 +37,24 @@ function AppRoutes() {
             <Route path="/register" element={<Register />} errorElement={<RouteErrorBoundary />} />
             <Route path="/m" element={<Navigate to="/" replace />} />
             <Route path="/m/:slug" element={<QrMenu />} errorElement={<RouteErrorBoundary />} />
-            <Route path="/dashboard" element={<MainLayout />}>
-              <Route index element={<Dashboard />} />
+
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<MainLayout />}>
+                <Route index element={<Dashboard />} />
+              </Route>
+              <Route path="/tv" element={<TvMode />} />
+              <Route path="/display" element={<CustomerDisplay />} />
+              <Route path="/" element={<MainLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="market" element={<Market />} />
+                <Route path="pos" element={<POS />} />
+                <Route path="kitchen" element={<Kitchen />} />
+                <Route path="admin/inventory" element={<Inventory />} />
+                <Route path="admin/settings" element={<Settings />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Route>
             </Route>
-            <Route path="/tv" element={<TvMode />} />
-            <Route path="/display" element={<CustomerDisplay />} />
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="market" element={<Market />} />
-              <Route path="pos" element={<POS />} />
-              <Route path="kitchen" element={<Kitchen />} />
-              <Route path="admin/inventory" element={<Inventory />} />
-              <Route path="admin/settings" element={<Settings />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Route>
+
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Suspense>

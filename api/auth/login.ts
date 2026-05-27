@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { loginUser } from "../lib/auth-service";
 
 function parseJsonBody(body: unknown) {
   if (typeof body === "string") {
@@ -30,22 +31,19 @@ export default async function handler(
     const rawBody = req.body;
     const body = parseJsonBody(rawBody ?? {});
 
-    // Return expected auth response shape for frontend
+    const result = await loginUser({
+      email: String(body?.email ?? ""),
+      password: String(body?.password ?? ""),
+    });
+
     return res.status(200).json({
       success: true,
-      token: "demo-token",
-      route: "api/auth/login.ts",
-      user: {
-        id: "1",
-        email: body?.email || "demo@example.com",
-        role: "OWNER",
-        restaurantId: null,
-      },
+      token: result.token,
+      user: result.user,
     });
   } catch (err) {
-    return res.status(500).json({
-      error: "Server error",
-      details: String(err),
+    return res.status(400).json({
+      error: err instanceof Error ? err.message : "Login failed",
     });
   }
 }

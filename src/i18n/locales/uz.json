@@ -204,6 +204,7 @@
     "imageFormats": "PNG, JPG, WebP · maks. 5 MB",
     "errors": {
       "noRestaurant": "Restoran yuklanmadi. Sahifani yangilang yoki qayta kiring.",
+      "workspaceLoading": "Ish maydoni yuklanmoqda. Iltimos, biroz kuting.",
       "nameRequired": "Mahsulot nomi majburiy",
       "priceRequired": "Noldan katta to'g'ri narx kiriting",
       "imageTooLarge": "Rasm hajmi 5 MB dan kichik bo'lishi kerak",

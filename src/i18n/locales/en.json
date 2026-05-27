@@ -204,6 +204,7 @@
     "imageFormats": "PNG, JPG, WebP · max 5MB",
     "errors": {
       "noRestaurant": "Restaurant not loaded. Please refresh or sign in again.",
+      "workspaceLoading": "Workspace is still loading. Please wait a moment.",
       "nameRequired": "Product name is required",
       "priceRequired": "Enter a valid price greater than zero",
       "imageTooLarge": "Image must be 5MB or smaller",

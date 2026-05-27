@@ -135,6 +135,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     console.log("AuthProvider: state", { tokenPresent: !!token, userPresent: !!currentUser, isAuthenticated });
+    // Explicit debug exports for debugging restaurant load flow
+    console.log("USER =", currentUser);
+    console.log("TOKEN =", token);
   }, [token, currentUser, isAuthenticated]);
 
   return (

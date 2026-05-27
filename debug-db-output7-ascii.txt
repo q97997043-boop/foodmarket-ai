@@ -1,0 +1,1 @@
+[{"name":"Analytics"},{"name":"Category"},{"name":"Order"},{"name":"OrderItem"},{"name":"PriceHistory"},{"name":"Product"},{"name":"Restaurant"},{"name":"TvDisplaySettings"},{"name":"User"}]

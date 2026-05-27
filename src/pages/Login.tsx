@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../providers/AuthProvider";
 import { useI18n } from "../providers/I18nProvider";
 import { loginViaRest } from "../lib/auth-api";
 import { logInit } from "../lib/init-log";
@@ -13,6 +14,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const { t, translateError } = useI18n();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,16 +34,11 @@ export default function Login() {
 
       console.log("Login: token received", result.token);
       console.log("Login: user received", result.user);
-      localStorage.setItem("auth-token", result.token);
-      localStorage.setItem("auth-user", JSON.stringify(result.user));
-      console.log("Login: token stored in localStorage", {
-        key: "auth-token",
-        tokenPreview: String(result.token).slice(0, 8),
-      });
-      console.log("Login: user stored in localStorage", { email: result.user.email });
+      login(result.token, result.user);
+      console.log("Login: auth context updated");
       logInit("login", "success, redirecting to dashboard");
       console.log("Login: redirecting to /dashboard");
-      window.location.href = "/dashboard";
+      navigate("/dashboard", { replace: true });
       return;
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);

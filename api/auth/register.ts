@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { registerUser } from "../lib/auth-service";
 
 function parseJsonBody(body: unknown) {
   if (typeof body === "string") {
@@ -30,21 +31,20 @@ export default async function handler(
     const rawBody = req.body;
     const body = parseJsonBody(rawBody ?? {});
 
+    const result = await registerUser({
+      email: String(body?.email ?? ""),
+      password: String(body?.password ?? ""),
+      restaurantName: body?.restaurantName ? String(body.restaurantName) : undefined,
+    });
+
     return res.status(200).json({
       success: true,
-      token: "demo-token",
-      route: "api/auth/register.ts",
-      user: {
-        id: "1",
-        email: String(body?.email ?? "demo@example.com"),
-        role: "OWNER",
-        restaurantId: null,
-      },
+      token: result.token,
+      user: result.user,
     });
   } catch (err) {
-    return res.status(500).json({
-      error: "Server error",
-      details: String(err),
+    return res.status(400).json({
+      error: err instanceof Error ? err.message : "Registration failed",
     });
   }
 }

@@ -29,17 +29,18 @@ const emptyProduct = {
 };
 
 export function Inventory() {
-  const { restaurantId } = useRestaurant();
+  const { restaurantId, isWorkspaceLoading } = useRestaurant();
   const { t, currency } = useI18n();
   const utils = trpc.useUtils();
+  const canQueryMenu = Boolean(restaurantId);
 
   const productsQuery = trpc.menu.getProducts.useQuery(
     { restaurantId: restaurantId! },
-    { enabled: !!restaurantId },
+    { enabled: canQueryMenu, retry: 1 },
   );
   const categoriesQuery = trpc.menu.getCategories.useQuery(
     { restaurantId: restaurantId! },
-    { enabled: !!restaurantId },
+    { enabled: canQueryMenu, retry: 1 },
   );
 
   const {
@@ -59,16 +60,75 @@ export function Inventory() {
   const categoriesList = categoriesData ?? [];
   const productsCount = productsList.length;
   const categoriesCount = categoriesList.length;
+  const hasAnyData = productsCount > 0 || categoriesCount > 0;
   const anyQueryLoading = isProductsFetching || isCategoriesFetching;
   const hasProductError = Boolean(productsError);
   const hasCategoryError = Boolean(categoriesError);
+  const showInlineLoader = anyQueryLoading && hasAnyData;
+  // Allow category/product modifications as soon as we have a restaurantId.
+  // Do not block UI while workspace settings are still loading.
+  const canModifyCategories = Boolean(restaurantId);
 
-  const createProduct = trpc.menu.createProduct.useMutation();
-  const updateProduct = trpc.menu.updateProduct.useMutation();
-  const deleteProduct = trpc.menu.deleteProduct.useMutation();
-  const createCategory = trpc.menu.createCategory.useMutation();
-  const updateCategory = trpc.menu.updateCategory.useMutation();
-  const deleteCategory = trpc.menu.deleteCategory.useMutation();
+  const createProduct = trpc.menu.createProduct.useMutation({
+    onSuccess: async () => {
+      if (restaurantId) {
+        await Promise.all([
+          utils.menu.getProducts.invalidate({ restaurantId }),
+          utils.menu.getCategories.invalidate({ restaurantId }),
+        ]);
+      }
+    },
+  });
+  const updateProduct = trpc.menu.updateProduct.useMutation({
+    onSuccess: async () => {
+      if (restaurantId) {
+        await Promise.all([
+          utils.menu.getProducts.invalidate({ restaurantId }),
+          utils.menu.getCategories.invalidate({ restaurantId }),
+        ]);
+      }
+    },
+  });
+  const deleteProduct = trpc.menu.deleteProduct.useMutation({
+    onSuccess: async () => {
+      if (restaurantId) {
+        await Promise.all([
+          utils.menu.getProducts.invalidate({ restaurantId }),
+          utils.menu.getCategories.invalidate({ restaurantId }),
+        ]);
+      }
+    },
+  });
+  const createCategory = trpc.menu.createCategory.useMutation({
+    onSuccess: async () => {
+      if (restaurantId) {
+        await Promise.all([
+          utils.menu.getCategories.invalidate({ restaurantId }),
+          utils.menu.getProducts.invalidate({ restaurantId }),
+        ]);
+      }
+    },
+  });
+  const updateCategory = trpc.menu.updateCategory.useMutation({
+    onSuccess: async () => {
+      if (restaurantId) {
+        await Promise.all([
+          utils.menu.getCategories.invalidate({ restaurantId }),
+          utils.menu.getProducts.invalidate({ restaurantId }),
+        ]);
+      }
+    },
+  });
+  const deleteCategory = trpc.menu.deleteCategory.useMutation({
+    onSuccess: async () => {
+      if (restaurantId) {
+        await Promise.all([
+          utils.menu.getCategories.invalidate({ restaurantId }),
+          utils.menu.getProducts.invalidate({ restaurantId }),
+        ]);
+      }
+    },
+  });
 
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
   const [form, setForm] = useState(emptyProduct);
@@ -86,12 +146,15 @@ export function Inventory() {
   // Debug logging for loading states and render safety
   useEffect(() => {
     console.log("Inventory rendered");
-    console.log("restaurantId:", restaurantId);
-    console.log("categoriesCount:", categoriesCount);
-    console.log("productsCount:", productsCount);
-    console.log("anyQueryLoading:", anyQueryLoading);
-    console.log("productsError:", productsError);
-    console.log("categoriesError:", categoriesError);
+    console.log("restaurantId =", restaurantId);
+    console.log("categoriesData =", categoriesData);
+    console.log("productsData =", productsData);
+    console.log("categoriesCount =", categoriesCount);
+    console.log("productsCount =", productsCount);
+    console.log("canQueryMenu =", canQueryMenu);
+    console.log("anyQueryLoading =", anyQueryLoading);
+    console.log("productsError =", productsError);
+    console.log("categoriesError =", categoriesError);
 
     if (productsError) {
       console.error("[Inventory Debug] Products Error:", productsError);
@@ -99,7 +162,7 @@ export function Inventory() {
     if (categoriesError) {
       console.error("[Inventory Debug] Categories Error:", categoriesError);
     }
-  }, [restaurantId, categoriesCount, productsCount, anyQueryLoading, productsError, categoriesError]);
+  }, [restaurantId, categoriesData, productsData, categoriesCount, productsCount, canQueryMenu, anyQueryLoading, productsError, categoriesError]);
 
   const refreshMenu = useCallback(async () => {
     if (!restaurantId) {
@@ -241,7 +304,8 @@ export function Inventory() {
   ) => {
     if (!restaurantId) {
       console.error("[Inventory] Cannot create category: missing restaurantId");
-      showToast(t("inventory.errors.noRestaurant"), "error");
+      // Non-fatal: do not show the generic "no restaurant" toast during normal loading.
+      // Log and return silently so the user is not flooded with toasts.
       return;
     }
     if (!name.trim()) {
@@ -277,7 +341,6 @@ export function Inventory() {
   const handleUpdateCategory = async (id: string) => {
     if (!restaurantId) {
       console.error("[Inventory] Cannot update category: missing restaurantId");
-      showToast(t("inventory.errors.noRestaurant"), "error");
       return;
     }
     if (!editingCategoryName.trim()) {
@@ -307,7 +370,6 @@ export function Inventory() {
   const handleDeleteCategory = async (id: string) => {
     if (!restaurantId) {
       console.error("[Inventory] Cannot delete category: missing restaurantId");
-      showToast(t("inventory.errors.noRestaurant"), "error");
       return;
     }
     if (!confirm(t("inventory.deleteCategoryConfirm"))) return;
@@ -401,7 +463,7 @@ export function Inventory() {
           <h2 className="text-lg font-semibold text-white">
             {t("inventory.categoriesTitle")}
           </h2>
-          {isCategoriesFetching && (
+          {isCategoriesFetching && categoriesCount > 0 && (
             <span className="ml-2 rounded-full bg-slate-800 px-2 py-1 text-xs text-slate-200">
               Loading categories…
             </span>
@@ -430,7 +492,7 @@ export function Inventory() {
           <button
             type="button"
             onClick={() => void handleCreateCategory(newCategoryName)}
-            disabled={!newCategoryName.trim() || createCategory.isLoading}
+            disabled={!newCategoryName.trim() || createCategory.isLoading || !canModifyCategories}
             className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50"
           >
             {createCategory.isLoading ? (
@@ -514,7 +576,7 @@ export function Inventory() {
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-white">Products</h2>
-          {anyQueryLoading && (
+          {showInlineLoader && (
             <p className="mt-1 text-sm text-slate-400">Loading products and categories…</p>
           )}
           {hasProductError && (
@@ -523,7 +585,7 @@ export function Inventory() {
             </p>
           )}
         </div>
-        {anyQueryLoading && (
+        {showInlineLoader && (
           <div className="flex items-center gap-2 rounded-full bg-slate-800/80 px-3 py-1 text-sm text-slate-200">
             <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
             <span>Refreshing inventory…</span>
@@ -659,7 +721,7 @@ export function Inventory() {
                           selectInForm: true,
                         })
                       }
-                      disabled={!modalCategoryName.trim() || createCategory.isLoading}
+                      disabled={!modalCategoryName.trim() || createCategory.isLoading || !canModifyCategories}
                       className="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-emerald-950 hover:bg-emerald-400 disabled:opacity-50"
                     >
                       {t("inventory.addCategory")}

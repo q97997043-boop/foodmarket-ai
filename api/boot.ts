@@ -16,6 +16,9 @@ import { registerUser, loginUser } from "./lib/auth-service";
 import { logApi, logApiError } from "./lib/log";
 import { saveProductImageFile } from "./lib/product-image-upload";
 import { verifyAuthHeader } from "./lib/verifyAuthHeaderUtil.js";
+import { seedRestaurantDefaults } from "./lib/seed";
+import { nextLegacyRestaurantId } from "./lib/ids";
+import { prisma } from "./prisma-client";
 import path from "node:path";
 import { serveStatic } from "@hono/node-server/serve-static";
 

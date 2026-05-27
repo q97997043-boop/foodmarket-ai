@@ -65,6 +65,7 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
     setIsError(false);
     setError(null);
     try {
+      console.log("RestaurantProvider: starting settings fetch", { token, user });
       const res = await fetch(`${window.location.origin}/api/settings/get`, {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
@@ -79,7 +80,10 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
         throw new Error(`Invalid JSON response: ${txt}`);
       }
       const payload = await res.json();
+      console.log("RestaurantProvider: settings fetch payload", payload);
       setData(payload);
+      console.log("RESTAURANT_DATA =", payload?.restaurant ?? null);
+      console.log("RESTAURANT_ID =", payload?.restaurant?.id ?? user?.restaurantId ?? null);
       saveBrandingCache({
         logoUrl: payload?.restaurant?.logoUrl,
         name: payload?.restaurant?.name,
