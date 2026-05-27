@@ -22,6 +22,7 @@ export default async function handler(
 
   if (req.method !== "POST") {
     return res.status(405).json({
+      success: false,
       error: "Method not allowed",
       method: req.method,
     });
@@ -44,7 +45,14 @@ export default async function handler(
       user: result.user,
     });
   } catch (err) {
-    return res.status(400).json({
+    console.error("REGISTER ERROR", err);
+    try {
+      console.error("REGISTER ERROR (stringified)", JSON.stringify(err));
+    } catch (e) {
+      /* ignore */
+    }
+    return res.status(500).json({
+      success: false,
       error: err instanceof Error ? err.message : "Registration failed",
     });
   }
